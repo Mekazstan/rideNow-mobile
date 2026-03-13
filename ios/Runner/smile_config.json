@@ -1,0 +1,11 @@
+{
+  "auth_token": "roox+Z0NLKCsBMyqirlUKodXI1fi8HLfbkc8OYc/nRhBAvhr3P3AbnfL9kwbQhC++LMqhEOhg2GRd14Ik3tUtsj+GO6EPXcGbyXR7horbciDctrYfSH0sO6OmCxxsbsLTfqSc4lPOFINWStwjqv12BIBZstsz11eaRFgFpWRkCg=",
+  "partner_id": "7966",
+  "environment": "sandbox",
+  "api_key": "35392747-5707-4a2b-ad59-bb44c1479acf",
+  "prod_lambda_url": "https://api.smileidentity.com/v1/",
+  "prod_url": "",
+  "test_lambda_url": "https://testapi.smileidentity.com/v1/",
+  "test_url": "",
+  "version": "1.0.0"
+}

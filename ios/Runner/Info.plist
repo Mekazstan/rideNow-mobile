@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>RideNow</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>RideNow</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	
+	<!-- Contacts Permission -->
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to help you add emergency contacts for safer rides</string>
+	
+	<!-- Location Permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby drivers and track your ride for safety</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to track your ride and share it with emergency contacts for safety</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to track your ride and ensure your safety</string>
+	
+	<!-- Smile ID Camera Permission -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to capture photos for identity verification</string>
+	
+	<!-- Photo Library Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select images for verification</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need permission to save verification photos to your library</string>
+	
+	<!-- Microphone Permission (optional for video verification) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone for video verification</string>
+	
+	<!-- Face ID Permission (if using biometric features) -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to secure your identity verification process</string>
+	
+	<!-- Supported Interface Orientations - iPhone -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Supported Interface Orientations - iPad -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Performance Settings -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	
+	<!-- Prevent screenshot security (optional - for sensitive apps) -->
+	<!-- Uncomment if you want to prevent screenshots
+	<key>UIApplicationExitsOnSuspend</key>
+	<false/>
+	-->
+</dict>
+</plist>

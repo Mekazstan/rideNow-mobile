@@ -1,0 +1,37 @@
+{
+  "smile_config": {
+    "partner_id": "7966",
+    "api_key": "35392747-5707-4a2b-ad59-bb44c1479acf",
+    "environment": "sandbox",
+    "smile_link": "https://links.sandbox.usesmileid.com/7966/3140c262-9664-4fbc-99c5-d624a089419a"
+  },
+  "test_credentials": {
+    "test_id_number": "00000000000",
+    "test_first_name": "Test",
+    "test_last_name": "User",
+    "test_dob": "1990-01-01",
+    "country": "NG"
+  },
+  "supported_id_types": [
+    {
+      "code": "NIN",
+      "name": "National Identity Number",
+      "country": "NG"
+    },
+    {
+      "code": "DRIVERS_LICENSE",
+      "name": "Driver's License",
+      "country": "NG"
+    },
+    {
+      "code": "PASSPORT",
+      "name": "International Passport",
+      "country": "NG"
+    },
+    {
+      "code": "VOTER_ID",
+      "name": "Voter's Card",
+      "country": "NG"
+    }
+  ]
+}

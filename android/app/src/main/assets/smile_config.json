@@ -1,0 +1,6 @@
+{
+  "partner_id": "7966",
+  "auth_token": "35392747-5707-4a2b-ad59-bb44c1479acf",
+  "prod_base_url": "https://api.smileidentity.com/v1",
+  "sandbox_base_url": "https://testapi.smileidentity.com/v1"
+}
