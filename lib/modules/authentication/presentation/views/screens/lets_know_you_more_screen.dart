@@ -9,6 +9,7 @@ import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/user_provider.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
@@ -234,58 +235,11 @@ class _LetsKnowYouMoreScreenState extends State<LetsKnowYouMoreScreen> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return GestureDetector(
-      onTap: _isLoading ? null : _handleNext,
-      child: Container(
-        height: 48.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color:
-              _isLoading
-                  ? appColors.blue600.withOpacity(0.6)
-                  : appColors.blue600,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_isLoading) ...[
-                SizedBox(
-                  width: 16.w,
-                  height: 16.w,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  'Next',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ] else ...[
-                SvgPicture.asset('assets/forwardArrow.svg'),
-                SizedBox(width: 8.w),
-                Text(
-                  'Next',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return RideNowButton(
+      title: 'Next',
+      onTap: _handleNext,
+      isLoading: _isLoading,
+      leadingIcon: _isLoading ? null : SvgPicture.asset('assets/forwardArrow.svg'),
     );
   }
 

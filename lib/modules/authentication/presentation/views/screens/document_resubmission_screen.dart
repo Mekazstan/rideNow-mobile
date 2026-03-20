@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
@@ -156,22 +158,10 @@ class _DocumentResubmissionScreenState extends State<DocumentResubmissionScreen>
               ),
             ],
             SizedBox(height: 32.h),
-            SizedBox(
-              width: double.infinity,
-              height: 52.h,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.blue600,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Submit for Review"),
-              ),
+            RideNowButton(
+              title: _isLoading ? 'Submitting...' : 'Submit for Review',
+              onTap: _handleSubmit,
+              isLoading: _isLoading,
             ),
           ],
         ),

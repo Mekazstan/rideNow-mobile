@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/providers/auth
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/step_indicator.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
@@ -307,34 +308,10 @@ class _DriverDocumentCollectionScreenState
   }
 
   Widget _buildSubmitButton(AppColorExtension appColors, AppFontThemeExtension appFonts) {
-    return GestureDetector(
-      onTap: _isLoading ? null : _handleSubmit,
-      child: Container(
-        height: 52.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _isLoading ? appColors.blue600.withOpacity(0.6) : appColors.blue600,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Center(
-          child: _isLoading
-              ? SizedBox(
-                  width: 20.w,
-                  height: 20.w,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                )
-              : Text(
-                  'Submit for Verification',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 16.sp,
-                  ),
-                ),
-        ),
-      ),
+    return RideNowButton(
+      title: 'Submit for Verification',
+      onTap: _handleSubmit,
+      isLoading: _isLoading,
     );
   }
   @override

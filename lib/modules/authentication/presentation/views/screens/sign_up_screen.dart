@@ -1,4 +1,4 @@
-﻿import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -152,57 +152,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return GestureDetector(
-      onTap: _isLoading ? null : _handleSignUp,
-      child: Container(
-        height: 42.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color:
-              _isLoading
-                  ? appColors.blue600.withOpacity(0.6)
-                  : appColors.blue600,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_isLoading) ...[
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  'Processing...',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ] else ...[
-                SvgPicture.asset('assets/forwardArrow.svg'),
-                SizedBox(width: 8.w),
-                Text(
-                  'Continue',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return RideNowButton(
+      title: _isLoading ? 'Processing...' : 'Continue',
+      onTap: _handleSignUp,
+      isLoading: _isLoading,
+      leadingIcon: _isLoading ? null : SvgPicture.asset('assets/forwardArrow.svg'),
     );
   }
 
@@ -265,6 +219,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           width: 127.w,
           height: 42.h,
           title: 'Apple',
+          variant: RideNowButtonVariant.outlined,
           leadingIcon: SvgPicture.asset(
             'assets/apple.svg',
             height: 16,
@@ -382,7 +337,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await Future.delayed(const Duration(milliseconds: 100));
 
       if (mounted) {
-        context.goNamed(RouteConstants.letsGetToKnowYou);
+        context.goNamed(RouteConstants.userTypeSelection);
       }
     } finally {
       if (mounted) {

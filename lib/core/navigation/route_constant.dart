@@ -21,4 +21,6 @@ class RouteConstants {
   static const String plans = 'plans';
   static const String analytics = 'analytics';
   static const String recoverPassword = 'recoverPassword';
+  static const String accountReady = 'accountReady';
+  static const String letsKnowYouMore = 'letsKnowYouMore';
 }

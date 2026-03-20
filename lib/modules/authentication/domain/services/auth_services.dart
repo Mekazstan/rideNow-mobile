@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
@@ -58,6 +58,50 @@ class AuthService {
     } catch (e) {
       if (kDebugMode) {
         print('Get Profile Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<User> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? phone,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('=== Update User Profile ===');
+        print('Endpoint: ${ApiConstants.profileEndpoint}');
+      }
+
+      final Map<String, dynamic> data = {};
+      if (firstName != null && firstName.isNotEmpty) data['firstName'] = firstName;
+      if (lastName != null && lastName.isNotEmpty) data['lastName'] = lastName;
+      if (phone != null && phone.isNotEmpty) data['phone'] = phone;
+
+      final response = await _dioClient.patch(
+        ApiConstants.profileEndpoint,
+        data: data,
+      );
+
+      if (kDebugMode) {
+        print('Update Profile Response: ${response.data}');
+      }
+
+      final responseData = response.data;
+      if (responseData == null) {
+        throw ApiException(message: 'Empty response from server');
+      }
+
+      final userData = responseData['data'];
+      if (userData == null) {
+        throw ApiException(message: 'No user data in response');
+      }
+
+      return User.fromJson(userData);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Update Profile Error: $e');
       }
       rethrow;
     }

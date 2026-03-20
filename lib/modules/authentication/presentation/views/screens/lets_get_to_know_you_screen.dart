@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +10,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/user_provider.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
@@ -390,57 +391,11 @@ class _LetsGetToKnowYouScreenState extends State<LetsGetToKnowYouScreen> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return GestureDetector(
-      onTap: _isLoading ? null : _handleNext,
-      child: Container(
-        height: 42.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color:
-              _isLoading
-                  ? appColors.blue600.withOpacity(0.6)
-                  : appColors.blue600,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_isLoading) ...[
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  'Saving...',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ] else ...[
-                SvgPicture.asset('assets/forwardArrow.svg'),
-                SizedBox(width: 8.w),
-                Text(
-                  'Next',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return RideNowButton(
+      title: _isLoading ? 'Saving...' : 'Next',
+      onTap: _handleNext,
+      isLoading: _isLoading,
+      leadingIcon: _isLoading ? null : SvgPicture.asset('assets/forwardArrow.svg'),
     );
   }
 
@@ -469,8 +424,24 @@ class _LetsGetToKnowYouScreenState extends State<LetsGetToKnowYouScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       if (authProvider.isAuthenticated) {
-        ToastService.showSuccess('Profile Updated!');
-        context.goNamed(RouteConstants.emergencyContact);
+        final success = await authProvider.updateProfile(
+          firstName: firstName,
+          lastName: lastName,
+          phone: fullPhoneNumber,
+        );
+        
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          if (success) {
+            ToastService.showSuccess('Profile Updated!');
+            context.goNamed(RouteConstants.emergencyContact);
+          } else {
+            ToastService.showError(authProvider.errorMessage ?? 'Update failed');
+          }
+        }
         return;
       }
 

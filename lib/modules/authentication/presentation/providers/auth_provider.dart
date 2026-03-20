@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/core/services/token_manager_service.dart';
 import 'package:ridenowappsss/core/storage/local_storage.dart';
@@ -767,6 +767,41 @@ class AuthProvider extends ChangeNotifier {
     _tempPassword = null;
     _tempConfirmPassword = null;
     notifyListeners();
+  }
+
+  Future<bool> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String phone,
+  }) async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+
+      final updatedUser = await _authService.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+      );
+
+      _user = updatedUser;
+      await _storageService.saveUserData(updatedUser);
+
+      _setAuthState(AuthState.authenticated);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _setError(e);
+      return false;
+    } on NetworkException catch (e) {
+      _setError(e);
+      return false;
+    } catch (e) {
+      _setError(
+        NetworkException('Failed to update profile. Please try again.'),
+      );
+      return false;
+    }
   }
 
   Future<bool> completeSignUp({

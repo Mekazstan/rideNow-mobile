@@ -5,6 +5,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provide
 import 'package:ridenowappsss/modules/ride/data/models/driver_misc_models.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/document_resubmission_screen.dart';
@@ -255,19 +256,9 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
           ],
           if (isRejected) ...[
             SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _handleResubmit(doc),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.blue600,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                child: const Text("Resubmit Document"),
-              ),
+            RideNowButton(
+              title: "Resubmit Document",
+              onTap: () => _handleResubmit(doc),
             ),
           ],
         ],

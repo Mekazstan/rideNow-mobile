@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +8,7 @@ import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
 
@@ -104,37 +105,11 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: authProvider.isLoading ? null : _handleSendLink,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.blue600,
-          disabledBackgroundColor: appColors.blue600.withOpacity(0.6),
-          padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 14.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          minimumSize: Size(150.w, 48.h),
-        ),
-        child:
-            authProvider.isLoading
-                ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                )
-                : Text(
-                  'Send link',
-                  style: appFonts.textMdBold.copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-      ),
+    return RideNowButton(
+      title: authProvider.isLoading ? 'Sending...' : 'Send link',
+      onTap: _handleSendLink,
+      isLoading: authProvider.isLoading,
+      width: 200.w,
     );
   }
 
@@ -267,37 +242,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: authProvider.isLoading ? null : _handleComplete,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.blue600,
-          disabledBackgroundColor: appColors.blue600.withOpacity(0.6),
-          padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 14.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          minimumSize: Size(150.w, 48.h),
-        ),
-        child:
-            authProvider.isLoading
-                ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                )
-                : Text(
-                  'Complete',
-                  style: appFonts.textMdBold.copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-      ),
+    return RideNowButton(
+      title: authProvider.isLoading ? 'Completing...' : 'Complete',
+      onTap: _handleComplete,
+      isLoading: authProvider.isLoading,
+      width: 200.w,
     );
   }
 

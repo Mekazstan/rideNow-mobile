@@ -18,29 +18,32 @@ class OnboardingCard extends StatelessWidget {
       children: [
         Image.asset(data.image),
         SizedBox(height: 11.h),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              data.title,
-              style: appFonts.textMdMedium.copyWith(
-                letterSpacing: -2,
-                fontSize: 32,
-                fontWeight: FontWeight.w500,
-                color: appColors.textSecondary,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text(
+                data.title,
+                style: appFonts.textMdMedium.copyWith(
+                  letterSpacing: -2,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w500,
+                  color: appColors.textSecondary,
+                ),
               ),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              data.description,
-              style: appFonts.textMdMedium.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: appColors.textSecondary,
+              SizedBox(height: 12.h),
+              Text(
+                data.description,
+                style: appFonts.textMdMedium.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: appColors.textSecondary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

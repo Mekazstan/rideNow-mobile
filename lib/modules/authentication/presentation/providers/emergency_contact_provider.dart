@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/emergency_contact_model.dart';
 
 class EmergencyContactProvider extends ChangeNotifier {
@@ -18,6 +18,7 @@ class EmergencyContactProvider extends ChangeNotifier {
   }
 
   String get searchQuery => _searchQuery;
+  bool get isSyncing => false;
 
   bool get hasEmergencyContacts => _emergencyContacts.isNotEmpty;
 

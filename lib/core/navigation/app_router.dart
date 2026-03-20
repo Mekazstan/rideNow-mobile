@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ridenowappsss/core/navigation/bottom_navigation.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
@@ -19,6 +19,8 @@ import 'package:ridenowappsss/modules/authentication/presentation/views/screens/
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/splash_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/user_type_selection.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/verify_account_view.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/account_ready_screen.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/lets_know_you_more_screen.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/screens/ride_screen.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/screens/wallet_screen.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/analytics_screen.dart';
@@ -275,6 +277,54 @@ class AppRouter {
           return CustomTransitionPage(
             key: state.pageKey,
             child: const SelectPaymentPlanScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/accountReady',
+        name: RouteConstants.accountReady,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const AccountReadyScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/letsKnowYouMore',
+        name: RouteConstants.letsKnowYouMore,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const LetsKnowYouMoreScreen(),
             transitionsBuilder: (
               context,
               animation,

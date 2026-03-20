@@ -268,6 +268,8 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
       }
       rethrow;
     }
+  }
+
   @override
   Future<DailyLimitStatus> getDriverStatus() async {
     try {

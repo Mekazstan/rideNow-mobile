@@ -7,7 +7,7 @@ class ApiConstants {
       'AIzaSyD7T_mhOQVLdfPuEVCyWjMv7fRO4DXZ73I';
   static const String googleMapsBaseUrl =
       'https://maps.googleapis.com/maps/api';
-  static const String baseUrl = 'https://192.168.1.129:3000';
+  static const String baseUrl = 'https://192.168.1.120:3000';
   static const String countryCode = 'ng';
   static const int searchRadiusMeters = 50000;
 

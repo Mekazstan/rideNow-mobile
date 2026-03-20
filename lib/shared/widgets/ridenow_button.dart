@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 
@@ -79,11 +80,19 @@ class RideNowButton extends StatelessWidget {
     }
 
     EdgeInsets getPadding() {
+      final bool hasFixedDimensions = width != null || height != null;
+
       switch (size) {
         case RideNowButtonSize.small:
-          return const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+          return EdgeInsets.symmetric(
+            horizontal: hasFixedDimensions ? 8.w : 16.w,
+            vertical: hasFixedDimensions ? 4.h : 8.h,
+          );
         case RideNowButtonSize.medium:
-          return const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+          return EdgeInsets.symmetric(
+            horizontal: hasFixedDimensions ? 12.w : 24.w,
+            vertical: hasFixedDimensions ? 8.h : 14.h,
+          );
       }
     }
 
@@ -117,10 +126,14 @@ class RideNowButton extends StatelessWidget {
                   leadingIcon!,
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  title,
-                  style: appFonts.textMdBold.copyWith(
-                    color: getTextColor(appColors),
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: appFonts.textMdBold.copyWith(
+                      color: getTextColor(appColors),
+                    ),
                   ),
                 ),
               ],

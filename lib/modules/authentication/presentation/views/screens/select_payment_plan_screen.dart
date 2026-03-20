@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +8,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/subscription_plan_provider.dart';
 import 'package:ridenowappsss/modules/accounts/data/models/subscription_plan_model.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/widgets/paymet_plans.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 import 'package:ridenowappsss/shared/widgets/step_indicator.dart';
@@ -225,23 +226,10 @@ class _SelectPaymentPlanScreenState extends State<SelectPaymentPlanScreen> {
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 24.h),
-          ElevatedButton(
-            onPressed: _loadPlans,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.blue500,
-              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-            child: Text(
-              'Retry',
-              style: appFonts.textSmMedium.copyWith(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          RideNowButton(
+            title: 'Retry',
+            onTap: _loadPlans,
+            width: 150.w,
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +10,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/user_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/user_type_option.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 
 class UserTypeSelectionView extends StatefulWidget {
@@ -31,11 +32,13 @@ class _UserTypeSelectionViewState extends State<UserTypeSelectionView> {
     Provider.of<UserProvider>(context, listen: false).setUserType(type);
   }
 
-  void _handleContinue() {
+  bool _isLoading = false;
+
+  Future<void> _handleContinue() async {
     if (_selectedUserType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select a user type to continue'),
+          content: const Text('Please select a user type to continue'),
           backgroundColor:
               Theme.of(context).extension<AppColorExtension>()!.red300,
         ),
@@ -43,7 +46,52 @@ class _UserTypeSelectionViewState extends State<UserTypeSelectionView> {
       return;
     }
 
-    context.goNamed(RouteConstants.login);
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      final success = await authProvider.completeSignUp(
+        firstName: '',
+        lastName: '',
+        phone: '',
+        userType: _selectedUserType!.name,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (success) {
+          context.goNamed(
+            RouteConstants.verifyAccount,
+            extra: {'email': authProvider.tempEmail},
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.errorMessage ?? 'Sign up failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An unexpected error occurred'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -81,44 +129,19 @@ class _UserTypeSelectionViewState extends State<UserTypeSelectionView> {
               onTap: () => _onSelectUserType(UserType.driver),
               svgImage: 'assets/driver.png',
             ),
-            UserTypeOption(
-              title: 'Vendor',
-              isSelected: _selectedUserType == UserType.vendor,
-              onTap: () => _onSelectUserType(UserType.vendor),
-              svgImage: 'assets/vendor.png',
-            ),
+            // UserTypeOption(
+            //   title: 'Vendor',
+            //   isSelected: _selectedUserType == UserType.vendor,
+            //   onTap: () => _onSelectUserType(UserType.vendor),
+            //   svgImage: 'assets/vendor.png',
+            // ),
             SizedBox(height: 28.h),
-            GestureDetector(
-              onTap: _handleContinue,
-              child: Container(
-                height: 42.h,
-                width: 349.w,
-                decoration: BoxDecoration(
-                  color:
-                      _selectedUserType != null
-                          ? appColors.blue600
-                          : appColors.blue600.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset('assets/forwardArrow.svg'),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Continue',
-                        style: appFonts.textMdBold.copyWith(
-                          color: appColors.textWhite,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            RideNowButton(
+              title: _isLoading ? 'Processing...' : 'Continue',
+              onTap: _isLoading ? null : _handleContinue,
+              isLoading: _isLoading,
+              width: 349.w,
+              leadingIcon: _isLoading ? null : SvgPicture.asset('assets/forwardArrow.svg'),
             ),
             const SizedBox(height: 40),
           ],

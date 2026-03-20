@@ -1,3 +1,14 @@
+buildscript {
+    val kotlinVersion = "2.3.20" 
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
+}
+
 allprojects {
     repositories {
         google()

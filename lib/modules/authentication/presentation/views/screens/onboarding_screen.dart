@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -93,7 +93,7 @@ class OnboardingScreenState extends State<OnboardingScreen>
     await FirstTimeUserService.markUserAsReturning();
 
     if (mounted) {
-      context.goNamed(RouteConstants.userTypeSelection);
+      context.goNamed(RouteConstants.signUp);
     }
   }
 
@@ -152,15 +152,16 @@ class OnboardingScreenState extends State<OnboardingScreen>
       child: Row(
         children: List.generate(
           onboardingData.length,
-          (index) => Container(
-            margin: const EdgeInsets.only(right: 8),
-            width: currentIndex == index ? 168 : 72,
-            height: 8,
-            decoration: BoxDecoration(
-              color: appColors.blue200,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child:
+          (index) => Flexible(
+            flex: currentIndex == index ? 7 : 3,
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              height: 8,
+              decoration: BoxDecoration(
+                color: appColors.blue200,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child:
                 currentIndex == index
                     ? AnimatedBuilder(
                       animation: _progressAnimation,
@@ -184,8 +185,9 @@ class OnboardingScreenState extends State<OnboardingScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNextButton(AppColorExtension appColors) {
     return Padding(

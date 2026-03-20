@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/providers/emergency_contact_provider.dart';
 
 class ShareRideScreen extends StatefulWidget {
   const ShareRideScreen({super.key});

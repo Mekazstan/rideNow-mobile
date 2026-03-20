@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,6 +13,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/domain/services/contact_services.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/emergency_contact_provider.dart';
+import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_search_bar.dart';
 import 'package:ridenowappsss/shared/widgets/step_indicator.dart';
 
@@ -249,9 +250,9 @@ class _EmergencyContactState extends State<EmergencyContact> {
       final userType = authProvider.user?.userType.toLowerCase() ?? 'rider';
 
       if (userType == 'driver') {
-        context.goNamed(RouteConstants.selectPaymentPlan);
+        context.goNamed(RouteConstants.letsKnowYouMore);
       } else {
-        context.goNamed(RouteConstants.ride);
+        context.goNamed(RouteConstants.accountReady);
       }
     } catch (e) {
       debugPrint('âŒ Navigation error: $e');
@@ -475,7 +476,7 @@ class _EmergencyContactState extends State<EmergencyContact> {
             SizedBox(height: 16.h),
             _buildAddContactsButton(appColors, appFonts),
             SizedBox(height: 3.h),
-            _buildSkipButton(appColors, appFonts),
+            _buildContinueButton(appColors, appFonts),
             SizedBox(height: 31.h),
           ],
         ),
@@ -571,81 +572,29 @@ class _EmergencyContactState extends State<EmergencyContact> {
   ) {
     final isDisabled = _isLoading || _isVerifying;
 
-    return GestureDetector(
-      onTap: isDisabled ? null : _handleAddContactsPressed,
-      child: Container(
-        height: 49.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color:
-              isDisabled
-                  ? appColors.blue700.withOpacity(0.5)
-                  : appColors.blue700,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child:
-              _isLoading
-                  ? Center(
-                    child: SizedBox(
-                      height: 20.h,
-                      width: 20.w,
-                      child: CircularProgressIndicator(
-                        color: appColors.textWhite,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  )
-                  : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        'assets/add.svg',
-                        color: appColors.textWhite,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Add Contacts',
-                        style: appFonts.textMdBold.copyWith(
-                          color: appColors.textWhite,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-        ),
-      ),
+    return RideNowButton(
+      title: 'Add Contacts',
+      onTap: _handleAddContactsPressed,
+      isLoading: _isLoading,
+      leadingIcon: _isLoading
+          ? null
+          : SvgPicture.asset(
+              'assets/add.svg',
+              color: appColors.textWhite,
+            ),
     );
   }
 
-  Widget _buildSkipButton(
+  Widget _buildContinueButton(
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return GestureDetector(
+    return RideNowButton(
+      title: _isVerifying ? 'Verifying...' : 'Continue to Verification',
       onTap: _isVerifying ? null : () => _startSmileIDVerification(),
-      child: Center(
-        child:
-            _isVerifying
-                ? SizedBox(
-                  height: 20.h,
-                  width: 20.w,
-                  child: CircularProgressIndicator(
-                    color: appColors.blue600,
-                    strokeWidth: 2,
-                  ),
-                )
-                : Text(
-                  'Skip',
-                  style: appFonts.textSmMedium.copyWith(
-                    color: appColors.blue600,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-      ),
+      isLoading: _isVerifying,
+      variant: RideNowButtonVariant.ghost,
+      colorSet: RideNowButtonColorSet.accent,
     );
   }
 

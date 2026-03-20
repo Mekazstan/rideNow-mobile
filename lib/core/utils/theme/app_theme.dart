@@ -461,7 +461,7 @@ class AppTheme {
         titleTextStyle: _lightFontTheme.heading2Bold,
         elevation: 0,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         // Corrected: CardTheme instead of CardThemeData
         color: _lightAppColors.surfaceCard,
         elevation: 0,
@@ -567,7 +567,7 @@ class AppTheme {
         titleTextStyle: _darkFontTheme.heading2Bold,
         elevation: 0,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         // Corrected: CardTheme instead of CardThemeData
         color: _darkAppColors.surfaceCard,
         elevation: 0,

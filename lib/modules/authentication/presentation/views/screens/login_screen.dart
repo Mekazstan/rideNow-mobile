@@ -1,4 +1,4 @@
-﻿import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -196,57 +196,14 @@ class _LoginViewState extends State<LoginView> {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return GestureDetector(
-      onTap: authProvider.isLoading ? null : _handleLogin,
-      child: Container(
-        height: 42.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color:
-              authProvider.isLoading
-                  ? appColors.blue600.withOpacity(0.6)
-                  : appColors.blue600,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (authProvider.isLoading) ...[
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(appColors.textWhite),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  'Signing in...',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ] else ...[
-                SvgPicture.asset('assets/forwardArrow.svg'),
-                SizedBox(width: 8.w),
-                Text(
-                  'Sign in',
-                  style: appFonts.textMdBold.copyWith(
-                    color: appColors.textWhite,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return RideNowButton(
+      title: authProvider.isLoading ? 'Signing in...' : 'Sign in',
+      onTap: _handleLogin,
+      isLoading: authProvider.isLoading,
+      leadingIcon:
+          authProvider.isLoading
+              ? null
+              : SvgPicture.asset('assets/forwardArrow.svg'),
     );
   }
 
@@ -324,6 +281,7 @@ class _LoginViewState extends State<LoginView> {
               width: 127.w,
               height: 42.h,
               title: 'Apple',
+              variant: RideNowButtonVariant.outlined,
               leadingIcon: SvgPicture.asset(
                 'assets/apple.svg',
                 height: 16,

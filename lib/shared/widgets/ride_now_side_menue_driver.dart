@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use, use_build_context_synchronously, unrelated_type_equality_checks
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously, unrelated_type_equality_checks
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -147,16 +147,16 @@ class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
                         onTap: () => _handleSwitchAccount('driver'),
                         hasCheckmark: user?.userType.toLowerCase() == 'driver',
                       ),
-                      SubMenuItem(
-                        title: 'Vendor',
-                        onTap: () => _handleSwitchAccount('vendor'),
-                        hasCheckmark: user?.userType.toLowerCase() == 'vendor',
-                        subtitle:
-                            user?.userType.toLowerCase() == 'vendor' &&
-                                    user?.verificationStatus != true
-                                ? 'Pending verification'
-                                : null,
-                      ),
+                      // SubMenuItem(
+                      //   title: 'Vendor',
+                      //   onTap: () => _handleSwitchAccount('vendor'),
+                      //   hasCheckmark: user?.userType.toLowerCase() == 'vendor',
+                      //   subtitle:
+                      //       user?.userType.toLowerCase() == 'vendor' &&
+                      //               user?.verificationStatus != true
+                      //           ? 'Pending verification'
+                      //           : null,
+                      // ),
                     ],
                   ),
                   Divider(color: appColors.gray200),

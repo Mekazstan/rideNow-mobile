@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -260,60 +260,21 @@ class _VerifyAccountViewState extends State<VerifyAccountView> {
                 SizedBox(height: 30.h),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.goNamed(RouteConstants.emergencyContact);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: appColors.blue600,
-                        foregroundColor: appColors.textWhite,
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 16.sp,
-                            color: appColors.textWhite,
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Continue',
-                            style: appFonts.textBaseMedium.copyWith(
-                              color: Colors.white,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                  child: RideNowButton(
+                    title: 'Continue',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.goNamed(RouteConstants.letsGetToKnowYou);
+                    },
+                    leadingIcon: Icon(
+                      Icons.arrow_forward,
+                      size: 16.sp,
+                      color: appColors.textWhite,
                     ),
                   ),
                 ),
                 SizedBox(height: 16.h),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    context.goNamed(RouteConstants.emergencyContact);
-                  },
-                  child: Text(
-                    'Skip',
-                    style: appFonts.textBaseMedium.copyWith(
-                      color: appColors.blue600,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
+                // Removed Skip button to ensure bio-data collection
               ],
             ),
           ),
