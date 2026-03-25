@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/services/error_service.dart';
@@ -13,7 +13,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/wallet_w
 import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_bottomsheet.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
-import 'package:ridenowappsss/shared/widgets/ride_now_side_menue_driver.dart';
+import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -29,7 +29,6 @@ class _WalletScreenState extends State<WalletScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
       _initializeWallet();
       _setupScrollListener();
     });
@@ -87,7 +86,7 @@ class _WalletScreenState extends State<WalletScreen> {
         final userType = authProvider.user?.userType.toLowerCase() ?? 'rider';
 
         return userType == 'driver'
-            ? const RideNowSideMenueDriver()
+            ? const RideNowSideMenuDriver()
             : const RideNowSideMenu();
       },
     );
@@ -99,6 +98,7 @@ class _WalletScreenState extends State<WalletScreen> {
       height: 389.h,
       backgroundColor: Colors.white,
       borderRadius: 16.r,
+      hideBottomNav: false,
       child: const ChooseBankAccount(),
     );
   }
@@ -126,27 +126,36 @@ class _WalletScreenState extends State<WalletScreen> {
             return RefreshIndicator(
               onRefresh: _refreshWallet,
               color: appColors.blue600,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 21),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    NavigationButton(appColors: appColors),
-                    SizedBox(height: 17.h),
-                    WalletBalanceCard(
-                      provider: provider,
-                      onDeposit: _showDepositBottomSheet,
-                      onWithdraw: _showWithdrawBottomSheet,
-                    ),
-                    SizedBox(height: 32.h),
-                    Expanded(
-                      child: WalletTransactionsList(
-                        provider: provider,
-                        scrollController: _scrollController,
-                        onRetry: _initializeWallet,
+              child: NestedScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 21),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          NavigationButton(appColors: appColors),
+                          SizedBox(height: 17.h),
+                          WalletBalanceCard(
+                            provider: provider,
+                            onDeposit: _showDepositBottomSheet,
+                            onWithdraw: _showWithdrawBottomSheet,
+                          ),
+                          SizedBox(height: 32.h),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                ],
+                body: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 21),
+                  child: WalletTransactionsList(
+                    provider: provider,
+                    scrollController: _scrollController,
+                    onRetry: _initializeWallet,
+                  ),
                 ),
               ),
             );

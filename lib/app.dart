@@ -9,6 +9,7 @@ import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/core/utils/theme/app_theme.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -74,6 +75,9 @@ class _AppState extends State<App> {
                   AppRouter.router.routeInformationProvider,
               routeInformationParser: AppRouter.router.routeInformationParser,
               routerDelegate: AppRouter.router.routerDelegate,
+              builder: (context, child) {
+                return child!;
+              },
             );
           },
         ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
@@ -39,39 +39,42 @@ class _WithdrawBottomSheetContentState
   Widget build(BuildContext context) {
     return Consumer<WalletProvider>(
       builder: (context, walletProvider, _) {
-        return Padding(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              BalanceCard(
-                balance: walletProvider.walletBalance?.balance ?? 0,
-                currency: walletProvider.walletBalance?.currency ?? 'NGN',
-                hasError: _errorMessage != null,
-              ),
-              SizedBox(height: 24.h),
-              AmountInput(
-                controller: _amountController,
-                errorMessage: _errorMessage,
-                onAmountChanged:
-                    (value) => _handleAmountChange(
-                      value,
-                      walletProvider.walletBalance?.balance ?? 0,
-                    ),
-              ),
-              SizedBox(height: 24.h),
-              BankAccountDetails(
-                bankAccount: widget.selectedBankAccount,
-                onChangeBankAccount: _handleChangeBankAccount,
-              ),
-              const Spacer(),
-              RideNowButton(
-                title: 'Continue',
-                onTap: _handleContinue,
-                width: double.infinity,
-                height: 48.h,
-              ),
-            ],
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                BalanceCard(
+                  balance: walletProvider.walletBalance?.balance ?? 0,
+                  currency: walletProvider.walletBalance?.currency ?? 'NGN',
+                  hasError: _errorMessage != null,
+                ),
+                SizedBox(height: 24.h),
+                AmountInput(
+                  controller: _amountController,
+                  errorMessage: _errorMessage,
+                  onAmountChanged:
+                      (value) => _handleAmountChange(
+                        value,
+                        walletProvider.walletBalance?.balance ?? 0,
+                      ),
+                ),
+                SizedBox(height: 24.h),
+                BankAccountDetails(
+                  bankAccount: widget.selectedBankAccount,
+                  onChangeBankAccount: _handleChangeBankAccount,
+                ),
+                SizedBox(height: 40.h),
+                RideNowButton(
+                  title: 'Continue',
+                  onTap: _handleContinue,
+                  width: double.infinity,
+                  height: 48.h,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -94,6 +97,7 @@ class _WithdrawBottomSheetContentState
 
     final cleanAmount = _amountController.text.replaceAll(',', '');
     final amount = double.parse(cleanAmount);
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
 
     Navigator.pop(context);
 
@@ -102,10 +106,16 @@ class _WithdrawBottomSheetContentState
       height: 300.h,
       backgroundColor: Colors.white,
       borderRadius: 16.r,
-      child: CreateWithdrawalPINBottomSheet(
-        bankAccount: widget.selectedBankAccount,
-        amount: amount,
-      ),
+      hideBottomNav: false,
+      child: walletProvider.hasWithdrawalPin
+          ? VerifyWithdrawalPINBottomSheet(
+              bankAccount: widget.selectedBankAccount,
+              amount: amount,
+            )
+          : CreateWithdrawalPINBottomSheet(
+              bankAccount: widget.selectedBankAccount,
+              amount: amount,
+            ),
     );
   }
 }

@@ -118,9 +118,67 @@ CreateTicketResponse _$CreateTicketResponseFromJson(
 );
 
 Map<String, dynamic> _$CreateTicketResponseToJson(
-  CreateTicketResponse instance,
-) => <String, dynamic>{
-  'success': instance.success,
-  'message': instance.message,
-  'data': instance.data,
-};
+      CreateTicketResponse instance) =>
+  <String, dynamic>{
+    'success': instance.success,
+    'message': instance.message,
+    'data': instance.data,
+  };
+
+UserTicket _$UserTicketFromJson(Map<String, dynamic> json) => UserTicket(
+      id: json['id'] as String,
+      ticketNumber: json['ticketNumber'] as String,
+      subject: json['subject'] as String,
+      category: json['category'] as String,
+      status: json['status'] as String,
+      priority: json['priority'] as String,
+      createdAt: json['createdAt'] as String,
+      updatedAt: json['updatedAt'] as String,
+      assignedAgent: json['assignedAgent'] as String?,
+      lastMessage: json['lastMessage'] as String,
+    );
+
+Map<String, dynamic> _$UserTicketToJson(UserTicket instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'ticketNumber': instance.ticketNumber,
+      'subject': instance.subject,
+      'category': instance.category,
+      'status': instance.status,
+      'priority': instance.priority,
+      'createdAt': instance.createdAt,
+      'updatedAt': instance.updatedAt,
+      'assignedAgent': instance.assignedAgent,
+      'lastMessage': instance.lastMessage,
+    };
+
+TicketsData _$TicketsDataFromJson(Map<String, dynamic> json) => TicketsData(
+      tickets: (json['tickets'] as List<dynamic>)
+          .map((e) => UserTicket.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: (json['total'] as num).toInt(),
+      open: (json['open'] as num).toInt(),
+      resolved: (json['resolved'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$TicketsDataToJson(TicketsData instance) =>
+    <String, dynamic>{
+      'tickets': instance.tickets,
+      'total': instance.total,
+      'open': instance.open,
+      'resolved': instance.resolved,
+    };
+
+TicketsResponse _$TicketsResponseFromJson(Map<String, dynamic> json) =>
+    TicketsResponse(
+      success: json['success'] as bool,
+      message: json['message'] as String,
+      data: TicketsData.fromJson(json['data'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$TicketsResponseToJson(TicketsResponse instance) =>
+    <String, dynamic>{
+      'success': instance.success,
+      'message': instance.message,
+      'data': instance.data,
+    };

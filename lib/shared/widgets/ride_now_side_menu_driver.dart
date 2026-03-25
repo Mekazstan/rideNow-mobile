@@ -11,22 +11,128 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ridenowappsss/shared/widgets/switch_role_modal.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:ridenowappsss/modules/ride/data/repositories/places_repository.dart';
+import 'package:ridenowappsss/core/services/service_locator.dart';
+import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 
-class RideNowSideMenueDriver extends StatefulWidget {
-  const RideNowSideMenueDriver({super.key});
+class RideNowSideMenuDriver extends StatefulWidget {
+  const RideNowSideMenuDriver({super.key});
 
   @override
-  State<RideNowSideMenueDriver> createState() => _RideNowSideMenueDriverState();
+  State<RideNowSideMenuDriver> createState() => _RideNowSideMenuDriverState();
 }
 
-class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
-  bool _isLoggingOut = false;
+class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
   bool _isLoadingProfile = true;
+  bool _isLoggingOut = false;
+  GoogleMapController? _mapController;
+  LatLng? _currentPosition;
+  bool _isLoadingLocation = true;
+  final Set<Marker> _markers = {};
+  String _currentLocationName = 'Locating...';
+
+  static const LatLng _defaultLocation = LatLng(6.3350, 5.6037);
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _getCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  /// Gets current location or falls back to default
+  Future<void> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _setDefaultLocation();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _setDefaultLocation();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _setDefaultLocation();
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+          _isLoadingLocation = false;
+          _addMarker(_currentPosition!);
+        });
+        _getLocationName(position.latitude, position.longitude);
+      }
+    } catch (e) {
+      _setDefaultLocation();
+    }
+  }
+
+  void _setDefaultLocation() {
+    if (mounted) {
+      setState(() {
+        _currentPosition = _defaultLocation;
+        _isLoadingLocation = false;
+        _addMarker(_defaultLocation);
+      });
+    }
+  }
+
+  Future<void> _getLocationName(double latitude, double longitude) async {
+    try {
+      final placesRepo = getIt<PlacesRepository>();
+      final details = await placesRepo.reverseGeocodeAddress(latitude, longitude);
+      if (mounted && details != null && details.formattedAddress != null) {
+        setState(() {
+          _currentLocationName = details.formattedAddress!;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting location name: $e');
+    }
+  }
+
+  void _addMarker(LatLng position) {
+    setState(() {
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('driver_location'),
+          position: position,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Your Location'),
+        ),
+      );
+    });
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    if (_currentPosition != null) {
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(_currentPosition!, 15),
+      );
+    }
   }
 
   /// Fetches user profile from auth provider
@@ -76,21 +182,45 @@ class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
               ),
             ),
             Text(
-              'Murtala Mohammed Expressway',
+              _currentLocationName,
               style: appFonts.textSmMedium.copyWith(
                 color: appColors.textPrimary,
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w700,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 6.h),
             Container(
               height: 187.h,
-              width: 279.w,
+              width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: appColors.gray200, width: 1),
               ),
-              child: Image.asset('assets/map2.png'),
+              clipBehavior: Clip.antiAlias,
+              child:
+                  _isLoadingLocation
+                      ? const ShimmerBox(borderRadius: 12)
+                      : GoogleMap(
+                        onMapCreated: _onMapCreated,
+                        initialCameraPosition: CameraPosition(
+                          target: _currentPosition ?? _defaultLocation,
+                          zoom: 15,
+                        ),
+                        markers: _markers,
+                        myLocationEnabled: false,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        mapToolbarEnabled: false,
+                        compassEnabled: false,
+                        scrollGesturesEnabled: false,
+                        zoomGesturesEnabled: false,
+                        tiltGesturesEnabled: false,
+                        rotateGesturesEnabled: false,
+                        mapType: MapType.normal,
+                      ),
             ),
             SizedBox(height: 10.h),
             Expanded(
@@ -139,13 +269,13 @@ class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
                     subItems: [
                       SubMenuItem(
                         title: 'Rider',
-                        onTap: () => _handleSwitchAccount('rider'),
-                        hasCheckmark: user?.userType.toLowerCase() == 'rider',
+                        onTap: () => _showSwitchRoleModal('rider'),
+                        hasCheckmark: (user?.currentRole ?? user?.userType)?.toLowerCase() == 'rider',
                       ),
                       SubMenuItem(
                         title: 'Driver',
-                        onTap: () => _handleSwitchAccount('driver'),
-                        hasCheckmark: user?.userType.toLowerCase() == 'driver',
+                        onTap: () => _showSwitchRoleModal('driver'),
+                        hasCheckmark: (user?.currentRole ?? user?.userType)?.toLowerCase() == 'driver',
                       ),
                       // SubMenuItem(
                       //   title: 'Vendor',
@@ -275,13 +405,23 @@ class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
             SizedBox(height: 6.h),
             Row(
               children: [
-                SvgPicture.asset('assets/verify.svg'),
+                SvgPicture.asset(
+                  'assets/verify.svg',
+                  colorFilter: ColorFilter.mode(
+                    user?.verificationStatus?.toLowerCase() == 'verified'
+                        ? appColors.pink300
+                        : appColors.gray400.withOpacity(0.5),
+                    BlendMode.srcIn,
+                  ),
+                ),
                 SizedBox(width: 6.w),
                 Text(
-                  user?.verificationStatus == true ? 'Verified' : 'Unverified',
+                  user?.verificationStatus?.toLowerCase() == 'verified'
+                      ? 'Verified'
+                      : 'Unverified',
                   style: appFonts.textSmMedium.copyWith(
                     color:
-                        user?.verificationStatus == true
+                        user?.verificationStatus?.toLowerCase() == 'verified'
                             ? appColors.pink300
                             : appColors.gray400,
                     fontSize: 12.sp,
@@ -386,104 +526,59 @@ class _RideNowSideMenueDriverState extends State<RideNowSideMenueDriver> {
     }
   }
 
-  Future<void> _handleSwitchAccount(String targetUserType) async {
-    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+  void _showSwitchRoleModal(String targetRole) {
     final authProvider = context.read<AuthProvider>();
-    final currentUserType = authProvider.user?.userType.toLowerCase();
-    final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final userRole = (authProvider.user?.currentRole ?? authProvider.user?.userType ?? 'driver').toLowerCase();
 
-    debugPrint('=== SWITCH ACCOUNT: START ===');
-    debugPrint('From: $currentUserType â†’ To: $targetUserType');
-
-    // Already on target account
-    if (currentUserType == targetUserType.toLowerCase()) {
-      navigator.pop(); // Close drawer
+    if (userRole == targetRole.toLowerCase()) {
+      _showAlreadyInRoleModal(targetRole);
       return;
     }
 
-    // Get confirmation
-    final confirmed = await showDialog<bool>(
+    showModalBottomSheet(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Switch Account'),
-            content: Text('Switch to $targetUserType account?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SwitchRoleModal(targetRole: targetRole),
     );
+  }
 
-    if (confirmed != true) return;
+  void _showAlreadyInRoleModal(String role) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
 
-    // Perform logout
-    try {
-      await authProvider.logout();
-      debugPrint('âœ… Logged out');
-    } catch (e) {
-      debugPrint('âš ï¸ Logout error (continuing anyway): $e');
-    }
-
-    // Close drawer (handle any errors)
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    try {
-      if (navigator.canPop()) {
-        navigator.pop();
-        debugPrint('âœ… Drawer closed');
-      }
-    } catch (e) {
-      debugPrint('âš ï¸ Could not close drawer: $e');
-    }
-
-    // Wait before navigation
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    // Navigate to login - THIS WILL WORK
-    if (mounted) {
-      GoRouter.of(context);
-
-      try {
-        // Clear the entire stack and go to login
-        context.goNamed(RouteConstants.login);
-        debugPrint('âœ… Navigated to login');
-      } catch (e) {
-        debugPrint('âŒ GoRouter.go failed: $e');
-
-        // Fallback: Use Navigator to clear stack
-        try {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/login', (route) => false);
-          debugPrint('âœ… Navigated with Navigator fallback');
-        } catch (e2) {
-          debugPrint('âŒ Navigator fallback failed: $e2');
-        }
-      }
-
-      // Show message
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Login with your $targetUserType credentials'),
-            backgroundColor: appColors.blue500,
-            duration: const Duration(seconds: 3),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          'Account Switch',
+          style: appFonts.textSmMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 18.sp,
           ),
-        );
-      }
-    }
-
-    debugPrint('=== SWITCH ACCOUNT: END ===');
+        ),
+        content: Text(
+          'You are already a ${role.toLowerCase()}.',
+          style: appFonts.textSmMedium.copyWith(
+            color: appColors.textSecondary,
+            fontSize: 16.sp,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: appColors.pink600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

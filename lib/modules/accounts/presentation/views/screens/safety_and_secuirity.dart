@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +10,7 @@ import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/support_provider.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/account_details_widget.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_radio_button.dart';
 
@@ -26,17 +27,19 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
   bool _isInitialized = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Initialize privacy settings from provider on first build
-    if (!_isInitialized) {
-      final supportProvider = context.read<SupportProvider>();
-      setState(() {
-        _isLocationSharingEnabled = supportProvider.locationSharingEnabled;
-        _isDetectiveModeEnabled = supportProvider.detectiveModeEnabled;
-        _isInitialized = true;
-      });
-    }
+  void initState() {
+    super.initState();
+    // Initialize privacy settings from AuthProvider on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.user != null) {
+        setState(() {
+          _isLocationSharingEnabled = authProvider.user!.locationSharingEnabled;
+          _isDetectiveModeEnabled = authProvider.user!.detectiveModeEnabled;
+          _isInitialized = true;
+        });
+      }
+    });
   }
 
   /// Toggles location sharing on/off and updates the server
@@ -58,6 +61,12 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
       setState(() {
         _isLocationSharingEnabled = newValue;
       });
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.user != null) {
+        authProvider.updateUserLocal(
+          authProvider.user!.copyWith(locationSharingEnabled: newValue),
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -100,6 +109,12 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
       setState(() {
         _isDetectiveModeEnabled = newValue;
       });
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.user != null) {
+        authProvider.updateUserLocal(
+          authProvider.user!.copyWith(detectiveModeEnabled: newValue),
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -173,14 +188,13 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
               ),
               SizedBox(height: 13.h),
               Container(
-                height: 240.h,
                 width: 350.w,
                 decoration: BoxDecoration(
                   color: appColors.blue50.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                   child: Column(
                     children: [
                       SizedBox(height: 8.h),
@@ -197,13 +211,6 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
                       ),
                       SizedBox(height: 13.h),
                       Divider(color: appColors.blue200),
-                      SizedBox(height: 13.h),
-                      AccountDetailsWidget(
-                        appFonts: appFonts,
-                        appColors: appColors,
-                        text: 'Security FAQs',
-                        iconAsset: 'assets/language.svg',
-                      ),
                       SizedBox(height: 13.h),
                       Divider(color: appColors.blue200),
                       SizedBox(height: 13.h),
@@ -249,14 +256,13 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
               Consumer<SupportProvider>(
                 builder: (context, provider, child) {
                   return Container(
-                    height: 141.h,
                     width: 350.w,
                     decoration: BoxDecoration(
                       color: appColors.blue50.withOpacity(0.25),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                       child: Column(
                         children: [
                           SizedBox(height: 8.h),

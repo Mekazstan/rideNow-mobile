@@ -11,6 +11,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
+import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
@@ -31,13 +32,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
 
   // Google Sign In instance
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
     });
   }
 
@@ -277,7 +277,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (email.trim().isEmpty) {
       ToastService.showError(
         'Email is required',
-        // description: 'Email is required',
       );
       return;
     }
@@ -285,7 +284,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!_isValidEmail(email.trim())) {
       ToastService.showError(
         'Invalid Email',
-        // description: 'Please enter a valid email address',
       );
       return;
     }
@@ -293,7 +291,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (password.isEmpty) {
       ToastService.showError(
         'Password is required',
-        // description: 'Password is required',
       );
       return;
     }
@@ -301,7 +298,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (password.length < 6) {
       ToastService.showError(
         'Password Too Short',
-        // description: 'Password must be at least 6 characters long',
       );
       return;
     }
@@ -309,7 +305,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (confirmPassword.isEmpty) {
       ToastService.showError(
         'Please confirm your password',
-        // description: 'Please confirm your password',
       );
       return;
     }
@@ -317,7 +312,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (password != confirmPassword) {
       ToastService.showError(
         'Passwords Do Not Match',
-        // description: 'Passwords do not match',
       );
       return;
     }
@@ -359,8 +353,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Sign out first to ensure account picker shows
       await _googleSignIn.signOut();
 
-      // Trigger Google Sign-In
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Trigger Google Sign-In (Authentication)
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
 
       if (googleUser == null) {
         // User cancelled the sign-in
@@ -368,15 +362,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
 
-      // Get authentication details
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Get Authorization (Access Token)
+      final authorization = await googleUser.authorizationClient.authorizationForScopes(['email', 'profile']);
 
-      if (googleAuth.accessToken == null) {
-        ToastService.showError(
-          'Failed to get access token from Google',
-          // description: 'Failed to get access token from Google',
-        );
+      if (authorization?.accessToken == null) {
+        ToastService.showError('Failed to get access token from Google');
         return;
       }
 
@@ -393,11 +383,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // Call your API with the access token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (mounted) AppLoadingDialog.show(context, message: 'Creating your account...');
       final success = await authProvider.socialSignUp(
         provider: 'google',
         userType: userType,
-        accessToken: googleAuth.accessToken!,
+        accessToken: authorization!.accessToken,
       );
+      if (mounted) Navigator.pop(context); // Hide loading dialog
 
       if (!success && mounted) {
         // Error is already handled by the provider
@@ -407,7 +400,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print('Google Sign-Up Error: $e');
       ToastService.showError(
         'Failed to sign up with Google. Please try again.',
-        // description: 'Failed to sign up with Google. Please try again.',
       );
       await _googleSignIn.signOut();
     } finally {
@@ -427,7 +419,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!await SignInWithApple.isAvailable()) {
         ToastService.showError(
           'Apple Sign In is not available on this device',
-          // description: 'Apple Sign In is not available on this device',
         );
         return;
       }
@@ -445,7 +436,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (credential.identityToken == null) {
         ToastService.showError(
           'Failed to get identity token from Apple',
-          // description: 'Failed to get identity token from Apple',
         );
         return;
       }
@@ -462,11 +452,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // Call your API with the identity token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (mounted) AppLoadingDialog.show(context, message: 'Creating your account...');
       await authProvider.socialSignUp(
         provider: 'apple',
         userType: userType,
         accessToken: credential.identityToken!,
       );
+      if (mounted) Navigator.pop(context); // Hide loading dialog
     } catch (e) {
       print('Apple Sign-Up Error: $e');
 
@@ -475,7 +468,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         ToastService.showError(
           'Failed to sign up with Apple. Please try again.',
-          // description: 'Failed to sign up with Apple. Please try again.',
         );
       }
     } finally {

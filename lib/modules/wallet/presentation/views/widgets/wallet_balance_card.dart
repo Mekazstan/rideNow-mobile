@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
@@ -31,7 +31,6 @@ class WalletBalanceCard extends StatelessWidget {
     final currency = provider.walletBalance?.currency ?? 'NGN';
 
     return Container(
-      height: 135.h,
       width: 348.w,
       decoration: BoxDecoration(
         color: appColors.blue50,

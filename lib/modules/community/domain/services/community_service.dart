@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/core/services/network_services.dart';
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
+import 'package:ridenowappsss/modules/authentication/data/models/emergency_contact_model.dart';
 import 'package:ridenowappsss/modules/community/data/models/community_models.dart';
 
 class CommunityService {
@@ -100,6 +101,55 @@ class CommunityService {
     } catch (e) {
       if (kDebugMode) {
         print('Get shared location error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // --- Contact Management ---
+
+  Future<List<EmergencyContact>> getContacts() async {
+    try {
+      final response = await _dioClient.get(ApiConstants.contactsEndpoint);
+      final List<dynamic> contactsJson = response.data['contacts'];
+      return contactsJson.map((json) => EmergencyContact.fromJson(json)).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Get contacts error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<String> createContact({
+    required String name,
+    required String phone,
+    String? email,
+  }) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.contactsEndpoint,
+        data: {
+          'name': name,
+          'phone': phone,
+          'email': email,
+        },
+      );
+      return response.data['id'] as String;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Create contact error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteContact({required String contactId}) async {
+    try {
+      await _dioClient.delete('${ApiConstants.contactsEndpoint}/$contactId');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Delete contact error: $e');
       }
       rethrow;
     }

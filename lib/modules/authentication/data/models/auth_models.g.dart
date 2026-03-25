@@ -29,7 +29,7 @@ Map<String, dynamic> _$LoginRequestToJson(LoginRequest instance) =>
     <String, dynamic>{
       'email': instance.email,
       'password': instance.password,
-      'device_info': instance.deviceInfo,
+      'device_info': instance.deviceInfo.toJson(),
     };
 
 SignUpRequest _$SignUpRequestFromJson(Map<String, dynamic> json) =>
@@ -69,7 +69,7 @@ Map<String, dynamic> _$SocialAuthRequestToJson(SocialAuthRequest instance) =>
       'provider': instance.provider,
       if (instance.userType case final value?) 'user_type': value,
       'access_token': instance.accessToken,
-      'device_info': instance.deviceInfo,
+      'device_info': instance.deviceInfo.toJson(),
     };
 
 SendVerificationRequest _$SendVerificationRequestFromJson(
@@ -119,7 +119,7 @@ EmailVerificationResponse _$EmailVerificationResponseFromJson(
   token: json['token'] as String,
   refreshToken: json['refresh_token'] as String,
   nextStep: json['next_step'] as String,
-  isNewUser: json['is_new_user'] as bool,
+  isNewUser: json['is_new_user'] as bool?,
   tokenExpiresIn: (json['token_expires_in'] as num).toInt(),
 );
 
@@ -128,11 +128,11 @@ Map<String, dynamic> _$EmailVerificationResponseToJson(
 ) => <String, dynamic>{
   'success': instance.success,
   'message': instance.message,
-  'user': instance.user,
+  'user': instance.user.toJson(),
   'token': instance.token,
   'refresh_token': instance.refreshToken,
   'next_step': instance.nextStep,
-  'is_new_user': instance.isNewUser,
+  if (instance.isNewUser case final value?) 'is_new_user': value,
   'token_expires_in': instance.tokenExpiresIn,
 };
 
@@ -153,33 +153,43 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
   updatedAt: json['updatedAt'] as String,
   rating: (json['rating'] as num?)?.toDouble(),
   totalRides: (json['totalRides'] as num).toInt(),
+  locationSharingEnabled: json['locationSharingEnabled'] as bool? ?? false,
+  detectiveModeEnabled: json['detectiveModeEnabled'] as bool? ?? false,
+  currentRole: json['current_role'] as String?,
+  activeRoles: (json['active_roles'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const ['rider'],
+  driverOnboardingStatus: json['driver_onboarding_status'] as String? ?? 'pending',
 );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
-  'id': instance.id,
-  'userType': instance.userType,
-  'firstName': instance.firstName,
-  'lastName': instance.lastName,
-  'email': instance.email,
-  'phone': instance.phone,
-  'dateOfBirth': instance.dateOfBirth,
-  'profilePhoto': instance.profilePhoto,
-  'emailVerified': instance.emailVerified,
-  'phoneVerified': instance.phoneVerified,
-  'status': instance.status,
-  'verificationStatus': instance.verificationStatus,
-  'createdAt': instance.createdAt,
-  'updatedAt': instance.updatedAt,
-  'rating': instance.rating,
-  'totalRides': instance.totalRides,
-};
+      'id': instance.id,
+      'userType': instance.userType,
+      'firstName': instance.firstName,
+      'lastName': instance.lastName,
+      'email': instance.email,
+      'phone': instance.phone,
+      'dateOfBirth': instance.dateOfBirth,
+      'profilePhoto': instance.profilePhoto,
+      'emailVerified': instance.emailVerified,
+      'phoneVerified': instance.phoneVerified,
+      'status': instance.status,
+      'verificationStatus': instance.verificationStatus,
+      'createdAt': instance.createdAt,
+      'updatedAt': instance.updatedAt,
+      'rating': instance.rating,
+      'totalRides': instance.totalRides,
+      'locationSharingEnabled': instance.locationSharingEnabled,
+      'detectiveModeEnabled': instance.detectiveModeEnabled,
+      'current_role': instance.currentRole,
+      'active_roles': instance.activeRoles,
+      'driver_onboarding_status': instance.driverOnboardingStatus,
+    };
 
 AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(
   success: json['success'] as bool,
   message: json['message'] as String,
   user: User.fromJson(json['user'] as Map<String, dynamic>),
-  token: json['token'] as String,
-  refreshToken: json['refresh_token'] as String,
+  token: json['token'] as String?,
+  refreshToken: json['refresh_token'] as String?,
   tokenExpiresIn: (json['token_expires_in'] as num?)?.toInt(),
   nextStep: json['next_step'] as String?,
   isNewUser: json['is_new_user'] as bool?,
@@ -189,7 +199,7 @@ Map<String, dynamic> _$AuthResponseToJson(AuthResponse instance) =>
     <String, dynamic>{
       'success': instance.success,
       'message': instance.message,
-      'user': instance.user,
+      'user': instance.user.toJson(),
       'token': instance.token,
       'refresh_token': instance.refreshToken,
       if (instance.tokenExpiresIn case final value?) 'token_expires_in': value,

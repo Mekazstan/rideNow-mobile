@@ -179,7 +179,27 @@ class WalletService {
     }
   }
 
+  /// Checks if the user has a withdrawal PIN set
+  Future<bool> checkWithdrawalPinStatus() async {
+    try {
+      final endpoint = '${ApiConstants.withdrawalPinEndpoint}/status';
+
+      _logRequest('Check Withdrawal PIN Status', endpoint);
+
+      final response = await _dioClient.get(endpoint);
+
+      _logResponse('Withdrawal PIN Status', response.data);
+
+      final data = response.data as Map<String, dynamic>;
+      return data['hasPin'] == true;
+    } catch (e) {
+      _logError('Check Withdrawal PIN Status', e);
+      return false; // Default to false if we can't figure it out
+    }
+  }
+
   /// Creates a new withdrawal PIN
+
   Future<void> createWithdrawalPin(String pin) async {
     try {
       final endpoint = ApiConstants.withdrawalPinEndpoint;
@@ -253,6 +273,42 @@ class WalletService {
       return response.data as Map<String, dynamic>;
     } catch (e) {
       _logError('Initiate Withdrawal', e);
+      rethrow;
+    }
+  }
+
+  /// Finalizes withdrawal transaction with OTP
+  Future<Map<String, dynamic>> finalizeWithdrawal({
+    required String transferCode,
+    required String otp,
+    required String transactionId,
+  }) async {
+    try {
+      final endpoint = '${ApiConstants.withdrawEndpoint}/finalize';
+
+      final body = {
+        'transferCode': transferCode,
+        'otp': otp,
+        'transactionId': transactionId,
+      };
+
+      _logRequest(
+        'Finalize Withdrawal',
+        endpoint,
+        params: {
+          'transferCode': transferCode,
+          'otp': '****',
+          'transactionId': transactionId,
+        },
+      );
+
+      final response = await _dioClient.post(endpoint, data: body);
+
+      _logResponse('Withdrawal Finalized', response.data);
+
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logError('Finalize Withdrawal', e);
       rethrow;
     }
   }

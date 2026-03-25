@@ -23,6 +23,7 @@ class WalletProvider extends ChangeNotifier {
   DateTime? _filterEndDate;
   List<WalletTransaction> _filteredTransactions = [];
   bool _isFilterActive = false;
+  bool _hasWithdrawalPin = false;
 
   WalletProvider({WalletService? walletService})
     : _walletService = walletService ?? WalletService();
@@ -47,6 +48,7 @@ class WalletProvider extends ChangeNotifier {
   bool get hasError => _state == WalletState.error;
   bool get hasMorePages => _pagination?.hasNext ?? false;
   bool get hasData => _balance != null && _transactions.isNotEmpty;
+  bool get hasWithdrawalPin => _hasWithdrawalPin;
 
   String get formattedBalance {
     return _balance?.balance.toStringAsFixed(2) ?? '0.00';
@@ -227,7 +229,10 @@ class WalletProvider extends ChangeNotifier {
       _updateState(WalletState.loading);
       _clearError();
 
-      await _fetchWalletData(isInitialLoad: true);
+      await Future.wait([
+        _fetchWalletData(isInitialLoad: true),
+        checkWithdrawalPinStatus(),
+      ]);
 
       _updateState(WalletState.loaded);
     } catch (e) {
@@ -243,7 +248,10 @@ class WalletProvider extends ChangeNotifier {
       _updateState(WalletState.refreshing);
       _clearError();
 
-      await _fetchWalletData(isRefresh: true);
+      await Future.wait([
+        _fetchWalletData(isRefresh: true),
+        checkWithdrawalPinStatus(),
+      ]);
 
       _updateState(WalletState.loaded);
     } catch (e) {
@@ -276,6 +284,17 @@ class WalletProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _handleError(e, 'Fetch balance');
+    }
+  }
+
+  /// Checks if user has a withdrawal PIN set
+  Future<void> checkWithdrawalPinStatus() async {
+    try {
+      _hasWithdrawalPin = await _walletService.checkWithdrawalPinStatus();
+      notifyListeners();
+    } catch (e) {
+      _logError('Check withdrawal PIN status', e);
+      // Fail silently to false
     }
   }
 
@@ -525,6 +544,9 @@ class WalletProvider extends ChangeNotifier {
 
       await _walletService.createWithdrawalPin(pin);
 
+      _hasWithdrawalPin = true;
+      notifyListeners();
+
       _logDebug('Withdrawal PIN created successfully', null);
     } catch (e) {
       _logError('Create withdrawal PIN', e);
@@ -581,7 +603,38 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
+  /// Finalizes withdrawal transaction with OTP
+  Future<Map<String, dynamic>?> finalizeWithdrawal({
+    required String transferCode,
+    required String otp,
+    required String transactionId,
+  }) async {
+    try {
+      _logDebug('Finalizing withdrawal', {
+        'transferCode': transferCode,
+        'transactionId': transactionId,
+      });
+
+      final response = await _walletService.finalizeWithdrawal(
+        transferCode: transferCode,
+        otp: otp,
+        transactionId: transactionId,
+      );
+
+      _logDebug('Withdrawal finalized successfully', response);
+
+      await _fetchWalletData(isRefresh: true);
+
+      return response;
+    } catch (e) {
+      _logError('Finalize withdrawal', e);
+      _error = e is Exception ? e : Exception(e.toString());
+      rethrow;
+    }
+  }
+
   Future<void> _fetchWalletData({
+
     bool isInitialLoad = false,
     bool isRefresh = false,
   }) async {

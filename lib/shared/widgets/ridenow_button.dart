@@ -13,7 +13,7 @@ enum RideNowButtonColorSet { primary, danger, accent }
 
 class RideNowButton extends StatelessWidget {
   final String title;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isLoading;
   final double? width;
   final double? height;
@@ -26,7 +26,7 @@ class RideNowButton extends StatelessWidget {
   const RideNowButton({
     super.key,
     required this.title,
-    required this.onTap,
+    this.onTap,
     this.isLoading = false,
     this.width,
     this.height,

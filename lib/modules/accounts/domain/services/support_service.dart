@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/core/services/network_services.dart';
 import 'package:ridenowappsss/modules/accounts/data/models/police_models.dart';
 import 'package:ridenowappsss/modules/accounts/data/models/support_models.dart';
@@ -170,7 +170,7 @@ class SupportService {
         print('FAQs Response: ${response.data}');
       }
 
-      return FaqResponse.fromJson(response.data);
+      return FaqResponse.fromJson(response.data['data']);
     } catch (e) {
       if (kDebugMode) {
         print('Get FAQs Error: $e');
@@ -215,6 +215,28 @@ class SupportService {
     } catch (e) {
       if (kDebugMode) {
         print('Create Ticket Error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  Future<TicketsResponse> getUserTickets() async {
+    try {
+      if (kDebugMode) {
+        print('=== Get User Tickets ===');
+        print('Endpoint: $_ticketsEndpoint');
+      }
+
+      final response = await _dioClient.get(_ticketsEndpoint);
+
+      if (kDebugMode) {
+        print('User Tickets Response: ${response.data}');
+      }
+
+      return TicketsResponse.fromJson(response.data);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Get User Tickets Error: $e');
       }
       rethrow;
     }

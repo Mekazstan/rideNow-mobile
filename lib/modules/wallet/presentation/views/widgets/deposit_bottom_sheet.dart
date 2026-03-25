@@ -36,11 +36,11 @@ class _DepositBottomSheetContentState extends State<DepositBottomSheetContent> {
         Row(
           children: [
             _buildAmountButton('5000', appColors, appFonts),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
             _buildAmountButton('7000', appColors, appFonts),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
             _buildAmountButton('30000', appColors, appFonts),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
             _buildAmountButton('50000', appColors, appFonts),
           ],
         ),
@@ -48,7 +48,9 @@ class _DepositBottomSheetContentState extends State<DepositBottomSheetContent> {
         Row(
           children: [
             _buildAmountButton('100000', appColors, appFonts),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
+            _buildAmountButton('500000', appColors, appFonts),
+            SizedBox(width: 12.w),
             GestureDetector(
               onTap: () {
                 Navigator.pop(context);
@@ -94,7 +96,7 @@ class _DepositBottomSheetContentState extends State<DepositBottomSheetContent> {
   ) {
     RideNowBottomSheet.show(
       context: context,
-      height: 240.h,
+      height: 280.h,
       backgroundColor: Colors.white,
       borderRadius: 16.r,
       child: const HowMuchDeposit(),
@@ -129,7 +131,7 @@ class _DepositBottomSheetContentState extends State<DepositBottomSheetContent> {
       },
       child: Container(
         height: 31.h,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(6.r),
           color: appColors.blue50,

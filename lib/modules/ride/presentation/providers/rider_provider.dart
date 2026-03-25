@@ -261,6 +261,14 @@ class RideProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> checkLocationPermissions() async {
+    final enabled = await _locationService.isLocationServiceEnabled();
+    if (!enabled) return false;
+
+    final hasPermission = await _locationService.requestLocationPermission();
+    return hasPermission;
+  }
+
   // Map Controller & Profile
   CameraPosition? _cameraPosition;
   CameraPosition? get cameraPosition => _cameraPosition;
@@ -274,17 +282,20 @@ class RideProvider extends ChangeNotifier {
   }
 
   void setUserProfilePhoto(String? photoUrl) {
+    if (_userProfilePhoto == photoUrl) return;
     _userProfilePhoto = photoUrl;
     notifyListeners();
   }
 
   void setRideDetails(RideDetails? details) {
+    if (_rideDetails == details) return;
     _rideDetails = details;
     notifyListeners();
   }
 
   // Vehicle selection
   void setSelectedVehicleType(VehicleType vehicleType) {
+    if (_selectedVehicleType == vehicleType) return;
     _selectedVehicleType = vehicleType;
     debugPrint('🚗 Vehicle type selected: ${vehicleType.toApiValue()}');
     notifyListeners();

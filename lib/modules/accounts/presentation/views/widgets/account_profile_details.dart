@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -313,33 +313,73 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
                 final lastName = user?.lastName ?? '';
                 final fullName = '$firstName $lastName'.trim();
                 final displayName = fullName.isEmpty ? 'Guest User' : fullName;
+                final isDriver = user?.userType.toLowerCase() == 'driver';
 
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                return Column(
                   children: [
-                    Text(
-                      displayName,
-                      style: widget.appFonts.textSmMedium.copyWith(
-                        color: widget.appColors.textPrimary,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (user?.emailVerified == true) ...[
-                      SizedBox(width: 4.w),
-                      SvgPicture.asset('assets/badge.svg'),
-                    ],
-                    if (user?.rating != null) ...[
-                      SizedBox(width: 4.w),
-                      Text(
-                        user!.rating!.toStringAsFixed(1),
-                        style: widget.appFonts.textSmMedium.copyWith(
-                          color: widget.appColors.textPrimary,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          displayName,
+                          style: widget.appFonts.textSmMedium.copyWith(
+                            color: widget.appColors.textPrimary,
+                            fontSize: 22.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                    ],
+                        if (user?.verificationStatus.toLowerCase() ==
+                            'verified') ...[
+                          SizedBox(width: 6.w),
+                          SvgPicture.asset(
+                            'assets/badge.svg',
+                            width: 20.w,
+                            height: 20.h,
+                          ),
+                        ],
+                      ],
+                    ),
+                    SizedBox(height: 4.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (user?.rating != null || isDriver) ...[
+                          Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            user?.rating?.toStringAsFixed(1) ?? '0.0',
+                            style: widget.appFonts.textSmMedium.copyWith(
+                              color: widget.appColors.textPrimary,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Container(
+                            width: 4.w,
+                            height: 4.h,
+                            decoration: BoxDecoration(
+                              color: widget.appColors.gray300,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                        ],
+                        Text(
+                          user?.userType.toUpperCase() ?? 'RIDER',
+                          style: widget.appFonts.textSmMedium.copyWith(
+                            color: widget.appColors.textSecondary,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 );
               },

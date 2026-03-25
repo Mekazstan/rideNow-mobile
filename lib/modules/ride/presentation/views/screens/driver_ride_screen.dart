@@ -8,6 +8,7 @@ import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_ride_request_bottom_sheet.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
+import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 
 class RideScreenDriver extends StatefulWidget {
   const RideScreenDriver({super.key});
@@ -31,7 +32,20 @@ class _RideScreenDriverState extends State<RideScreenDriver> {
     final driverProvider = context.read<DriverProvider>();
 
     try {
+      final hasPermission = await driverProvider.checkLocationPermissions();
+      if (!hasPermission && mounted) {
+        LocationPermissionDialog.show(
+          context,
+          onEnable: () async {
+            await _initializeDriverLocation();
+          },
+        );
+        return;
+      }
+
       final location = await locationService.getCurrentLocation();
+      if (!mounted) return;
+      
       driverProvider.setLocation(
         location: location.address ?? "Unknown Location",
         lat: location.latitude,

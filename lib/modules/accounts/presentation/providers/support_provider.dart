@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/modules/accounts/data/models/police_models.dart';
 import 'package:ridenowappsss/modules/accounts/data/models/support_models.dart';
 import 'package:ridenowappsss/modules/accounts/domain/services/support_service.dart';
@@ -355,6 +355,9 @@ class SupportProvider extends ChangeNotifier {
         print('Ticket submitted: ${response.data.ticketNumber}');
       }
 
+      // Refresh the tickets list so the new ticket shows up
+      await fetchUserTickets();
+
       return response;
     } on ValidationException catch (e) {
       _setError(e, isTicket: true);
@@ -423,6 +426,44 @@ class SupportProvider extends ChangeNotifier {
     _locationSharingEnabled = false;
     _detectiveModeEnabled = false;
     _lastError = null;
+    _userTickets = [];
+    _ticketsData = null;
+    _userTicketsState = SupportState.initial;
     notifyListeners();
+  }
+
+  // ============================================================
+  // TICKETS LIST STATE
+  // ============================================================
+
+  SupportState _userTicketsState = SupportState.initial;
+  SupportState get userTicketsState => _userTicketsState;
+
+  List<UserTicket> _userTickets = [];
+  List<UserTicket> get userTickets => _userTickets;
+
+  TicketsData? _ticketsData;
+  TicketsData? get ticketsData => _ticketsData;
+
+  Future<void> fetchUserTickets() async {
+    _userTicketsState = SupportState.loading;
+    notifyListeners();
+
+    try {
+      final response = await _supportService.getUserTickets();
+      if (response.success) {
+        _userTickets = response.data.tickets;
+        _ticketsData = response.data;
+        _userTicketsState = SupportState.success;
+      } else {
+        _setError(Exception(response.message), isTicket: true);
+        _userTicketsState = SupportState.error;
+      }
+    } catch (e) {
+      _setError(e is Exception ? e : Exception(e.toString()), isTicket: true);
+      _userTicketsState = SupportState.error;
+    } finally {
+      notifyListeners();
+    }
   }
 }

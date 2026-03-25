@@ -7,7 +7,7 @@ class ApiConstants {
       'AIzaSyD7T_mhOQVLdfPuEVCyWjMv7fRO4DXZ73I';
   static const String googleMapsBaseUrl =
       'https://maps.googleapis.com/maps/api';
-  static const String baseUrl = 'https://192.168.1.120:3000';
+  static const String baseUrl = 'http://10.161.100.158:3000';
   static const String countryCode = 'ng';
   static const int searchRadiusMeters = 50000;
 
@@ -17,6 +17,8 @@ class ApiConstants {
   static const String refreshTokenEndpoint = '/auth/refresh';
   static const String loginEndpoint = '/auth/signin';
   static const String logoutEndpoint = '/auth/logout';
+  static const String permissionsContactsEndpoint = '/onboardings/permissions-contacts';
+  static const String identityVerificationEndpoint = '/onboardings/identity-verification';
 
   // Wallet API Endpoints
   static const String walletBalanceEndpoint = '/wallets/balance';
@@ -65,6 +67,9 @@ class ApiConstants {
   static const String driverPerformanceAnalyticsEndpoint = '/drivers/analytics/performance';
   static const String driverRatingsAnalyticsEndpoint = '/drivers/analytics/ratings';
   static const String driverWeeklySummaryEndpoint = '/drivers/analytics/weekly-summary';
+  static const String driversVehicleSetupEndpoint = '/onboarding/drivers/vehicle-setup';
+  static const String driversDocumentsBatchEndpoint = '/drivers/documents/batch';
+  static const String submitBioDataEndpoint = '/onboardings/bio-data';
 
   // Pagination
   static const int defaultPerPage = 20;
@@ -87,6 +92,16 @@ class ApiConstants {
   // Profile Photo Upload
   static const int maxPhotoSizeBytes = 5 * 1024 * 1024; // 5MB
   static const List<String> allowedPhotoExtensions = ['jpg', 'jpeg', 'png'];
+
+  // Community & Sharing Endpoints
+  static const String contactsEndpoint = '/communitys/contacts';
+  static const String sharedRidesEndpoint = '/communitys/shared-rides';
+  static const String liveRideEndpoint = '/communitys/live-rides';
+  static const String shareLocationEndpoint = '/rides/{rideId}/share-trip';
+  static const String publicShareRideEndpoint = '/rides/{rideId}/share';
+  static const String stopSharingRideEndpoint = '/communitys/shared-rides/{rideId}';
+  static const String stopWatchingRideEndpoint = '/communitys/shared-rides/{rideId}/stop-watching';
+  static const String sharedLocationsEndpoint = '/communitys/shared-locations';
 }
 
 /// Map configuration constants

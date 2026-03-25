@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,7 +7,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
-import 'package:ridenowappsss/shared/widgets/ride_now_side_menue_driver.dart';
+import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -91,7 +91,7 @@ class _PlansScreenState extends State<PlansScreen> {
         final userType = authProvider.user?.userType.toLowerCase() ?? 'rider';
 
         return userType == 'driver'
-            ? const RideNowSideMenueDriver()
+            ? const RideNowSideMenuDriver()
             : const RideNowSideMenu();
       },
     );

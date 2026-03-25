@@ -2,13 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ridenowappsss/modules/ride/data/models/driver_ride_request.dart';
 import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.dart';
+import 'package:ridenowappsss/core/services/location_service.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/driver_analytics_models.dart';
 
 class DriverProvider extends ChangeNotifier {
   final DriverRepository _repository;
+  final LocationService _locationService;
 
-  DriverProvider({required DriverRepository repository})
-    : _repository = repository;
+  DriverProvider({
+    required DriverRepository repository,
+    required LocationService locationService,
+  }) : _repository = repository,
+       _locationService = locationService;
 
   // State
   List<RideRequest> _rideRequests = [];
@@ -154,6 +159,14 @@ class DriverProvider extends ChangeNotifier {
       _isRefreshing = false;
       notifyListeners();
     }
+  }
+
+  Future<bool> checkLocationPermissions() async {
+    final enabled = await _locationService.isLocationServiceEnabled();
+    if (!enabled) return false;
+
+    final hasPermission = await _locationService.requestLocationPermission();
+    return hasPermission;
   }
 
   /// Search/filter ride requests by location or rider name

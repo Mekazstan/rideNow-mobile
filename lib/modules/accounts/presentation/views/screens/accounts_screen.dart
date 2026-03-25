@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +8,9 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
-import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/account_details_widget.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/account_profile_details.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/personal_info_section.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 
@@ -164,138 +165,91 @@ class _AccountsScreenState extends State<AccountsScreen> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              GestureDetector(
-                onTap:
+              PersonalInfoSection(appColors: appColors, appFonts: appFonts),
+              SizedBox(height: 32.h),
+              Text(
+                'Settings & Support',
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              _buildLargeMenuContainer(
+                appColors,
+                [
+                  _buildMenuItem(
+                    appFonts,
+                    appColors,
+                    'Safety and Security',
+                    'assets/safety.svg',
                     () => context.pushNamed(RouteConstants.safetyAndSecurity),
-                child: AccountDetailsWidget(
-                  appFonts: appFonts,
-                  appColors: appColors,
-                  text: 'Safety and Security',
-                  iconAsset: 'assets/safety.svg',
+                  ),
+                  _buildDivider(appColors),
+                  _buildMenuItem(
+                    appFonts,
+                    appColors,
+                    'Privacy Policy',
+                    'assets/userPin.svg',
+                    () => context.pushNamed(RouteConstants.privacyPolicy),
+                  ),
+                  _buildDivider(appColors),
+                  _buildMenuItem(
+                    appFonts,
+                    appColors,
+                    'Terms & Conditions',
+                    'assets/document.svg',
+                    () => context.pushNamed(RouteConstants.termsAndConditions),
+                  ),
+                  _buildDivider(appColors),
+                  _buildMenuItem(
+                    appFonts,
+                    appColors,
+                    'Help Center',
+                    'assets/document.svg',
+                    () => context.pushNamed(RouteConstants.helpCenter),
+                  ),
+                ],
+              ),
+              SizedBox(height: 32.h),
+              Text(
+                'Account Actions',
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(height: 20.h),
-              Divider(color: appColors.blue200),
-              SizedBox(height: 15.h),
-              AccountDetailsWidget(
-                appFonts: appFonts,
-                appColors: appColors,
-                text: 'Privacy Policy',
-                iconAsset: 'assets/userPin.svg',
+              SizedBox(height: 16.h),
+              _buildLargeMenuContainer(
+                appColors,
+                [
+                  _isDeletingAccount
+                      ? _buildLoadingItem(appColors, appFonts, 'Deleting account...', appColors.red600)
+                      : _buildMenuItem(
+                          appFonts,
+                          appColors,
+                          'Delete Account',
+                          'assets/userPin.svg',
+                          _handleDeleteAccount,
+                          textColor: appColors.red600,
+                          iconColor: appColors.red600,
+                        ),
+                  _buildDivider(appColors),
+                  _isLoggingOut
+                      ? _buildLoadingItem(appColors, appFonts, 'Logging out...', appColors.blue500)
+                      : _buildMenuItem(
+                          appFonts,
+                          appColors,
+                          'Log out',
+                          'assets/logout.svg',
+                          _handleLogout,
+                          textColor: appColors.red600,
+                          iconColor: appColors.red600,
+                        ),
+                ],
               ),
-              SizedBox(height: 15.h),
-              Divider(color: appColors.blue200),
-              SizedBox(height: 15.h),
-              AccountDetailsWidget(
-                appFonts: appFonts,
-                appColors: appColors,
-                text: 'Terms & Conditions',
-                iconAsset: 'assets/document.svg',
-              ),
-              SizedBox(height: 15.h),
-              Divider(color: appColors.blue200),
-              SizedBox(height: 15.h),
-              GestureDetector(
-                onTap: () => context.pushNamed(RouteConstants.helpCenter),
-                child: AccountDetailsWidget(
-                  appFonts: appFonts,
-                  appColors: appColors,
-                  text: 'Help Center',
-                  iconAsset: 'assets/document.svg',
-                ),
-              ),
-              SizedBox(height: 15.h),
-              Divider(color: appColors.blue200),
-              SizedBox(height: 15.h),
-              // Show loading indicator or delete button
-              _isDeletingAccount
-                  ? Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 12.h,
-                    ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 24.w,
-                          height: 24.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              appColors.red600,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Text(
-                          'Deleting account...',
-                          style: appFonts.textSmMedium.copyWith(
-                            color: appColors.red600,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : GestureDetector(
-                    onTap: _handleDeleteAccount,
-                    child: AccountDetailsWidget(
-                      appFonts: appFonts,
-                      appColors: appColors,
-                      textColor: appColors.red600,
-                      iconColor: appColors.red600,
-                      text: 'Delete Account',
-                      iconAsset: 'assets/userPin.svg',
-                    ),
-                  ),
-              SizedBox(height: 15.h),
-              Divider(color: appColors.blue200),
-              SizedBox(height: 15.h),
-              // Show loading indicator or logout button
-              _isLoggingOut
-                  ? Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 12.h,
-                    ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 24.w,
-                          height: 24.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              appColors.blue500,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Text(
-                          'Logging out...',
-                          style: appFonts.textSmMedium.copyWith(
-                            color: appColors.textPrimary,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : GestureDetector(
-                    onTap: _handleLogout,
-                    child: AccountDetailsWidget(
-                      appFonts: appFonts,
-                      appColors: appColors,
-                      textColor: appColors.red600,
-                      iconColor: appColors.red600,
-                      text: 'Log out',
-                      iconAsset: 'assets/logout.svg',
-                    ),
-                  ),
-              SizedBox(height: 15.h),
-              Divider(color: appColors.blue200),
               SizedBox(height: 30.h),
             ],
           ),
@@ -431,5 +385,102 @@ class _AccountsScreenState extends State<AccountsScreen> {
         setState(() => _isDeletingAccount = false);
       }
     }
+  }
+
+  Widget _buildLargeMenuContainer(AppColorExtension appColors, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: appColors.blue50.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.blue100),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildMenuItem(
+    AppFontThemeExtension appFonts,
+    AppColorExtension appColors,
+    String text,
+    String iconAsset,
+    VoidCallback onTap, {
+    Color? textColor,
+    Color? iconColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        child: Row(
+          children: [
+            SvgPicture.asset(
+              iconAsset,
+              width: 20.w,
+              height: 20.h,
+              colorFilter: ColorFilter.mode(
+                iconColor ?? appColors.blue500,
+                BlendMode.srcIn,
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Text(
+              text,
+              style: appFonts.textSmMedium.copyWith(
+                color: textColor ?? appColors.textPrimary,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: appColors.gray400,
+              size: 20.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider(AppColorExtension appColors) {
+    return Divider(
+      color: appColors.blue100.withOpacity(0.5),
+      height: 1,
+      indent: 52.w,
+    );
+  }
+
+  Widget _buildLoadingItem(
+    AppColorExtension appColors,
+    AppFontThemeExtension appFonts,
+    String text,
+    Color color,
+  ) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20.w,
+            height: 20.h,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+          SizedBox(width: 16.w),
+          Text(
+            text,
+            style: appFonts.textSmMedium.copyWith(
+              color: color,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -23,4 +23,7 @@ class RouteConstants {
   static const String recoverPassword = 'recoverPassword';
   static const String accountReady = 'accountReady';
   static const String letsKnowYouMore = 'letsKnowYouMore';
+  static const String driverDocumentCollection = 'driverDocumentCollection';
+  static const String privacyPolicy = 'privacyPolicy';
+  static const String termsAndConditions = 'termsAndConditions';
 }

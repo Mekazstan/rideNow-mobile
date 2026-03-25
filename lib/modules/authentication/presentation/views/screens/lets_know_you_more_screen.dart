@@ -49,7 +49,6 @@ class _LetsKnowYouMoreScreenState extends State<LetsKnowYouMoreScreen> {
   @override
   void initState() {
     super.initState();
-    ToastService.init(context);
   }
 
   @override
@@ -455,7 +454,7 @@ class _LetsKnowYouMoreScreenState extends State<LetsKnowYouMoreScreen> {
       if (success && mounted) {
         context.goNamed(RouteConstants.driverDocumentCollection);
       } else if (mounted) {
-        ToastService.showError(authProvider.error ?? 'Failed to setup vehicle');
+        ToastService.showError(authProvider.errorMessage ?? 'Failed to setup vehicle');
       }
     } catch (e) {
       ToastService.showError('An unexpected error occurred: $e');

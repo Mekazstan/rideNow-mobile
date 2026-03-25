@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,11 +15,13 @@ import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
 class AddANewBankAccount2 extends StatefulWidget {
   final String? selectedBankName;
   final String? selectedBankCode;
+  final String? bankLogo;
 
   const AddANewBankAccount2({
     super.key,
     this.selectedBankName,
     this.selectedBankCode,
+    this.bankLogo,
   });
 
   @override
@@ -147,7 +149,7 @@ class _AddANewBankAccount2State extends State<AddANewBankAccount2> {
       ),
       child: Row(
         children: [
-          Icon(Icons.account_balance, size: 24.sp, color: appColors.blue600),
+          _buildBankLogo(widget.bankLogo ?? viewModel.selectedBankCode, appColors),
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -469,5 +471,40 @@ class _AddANewBankAccount2State extends State<AddANewBankAccount2> {
 
       _showSnackBar(errorMessage, isError: true);
     }
+  }
+
+  Widget _buildBankLogo(String? logoIdentifier, AppColorExtension appColors) {
+    if (logoIdentifier == null) {
+      return Icon(Icons.account_balance, size: 24.sp, color: appColors.blue600);
+    }
+
+    final logoUrl = logoIdentifier.startsWith('http')
+        ? logoIdentifier
+        : 'https://cdn.paystack.co/bank/logos/$logoIdentifier.png';
+
+    return Container(
+      width: 36.w,
+      height: 36.w,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: appColors.blue200, width: 1),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          logoUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Icon(
+                Icons.account_balance,
+                size: 20.sp,
+                color: appColors.blue600,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

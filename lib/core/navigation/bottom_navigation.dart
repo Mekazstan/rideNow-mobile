@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -179,7 +179,14 @@ class ConditionalWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        // Show loading state while user data is being fetched
+        if (authProvider.user != null) {
+          final currentRole =
+              authProvider.user!.currentRole?.toLowerCase() ??
+              authProvider.user!.userType.toLowerCase();
+          final isRider = currentRole == 'rider';
+          return isRider ? riderWidget : driverWidget;
+        }
+
         if (authProvider.isLoading) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

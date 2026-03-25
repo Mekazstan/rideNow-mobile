@@ -28,7 +28,6 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
     });
   }
 
@@ -156,7 +155,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
     });
   }
 

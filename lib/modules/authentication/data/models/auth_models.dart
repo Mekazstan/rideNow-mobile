@@ -28,7 +28,7 @@ class DeviceInfo {
 // AUTHENTICATION REQUESTS
 // ============================================================
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class LoginRequest {
   final String email;
   final String password;
@@ -73,7 +73,7 @@ class SignUpRequest {
   Map<String, dynamic> toJson() => _$SignUpRequestToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class SocialAuthRequest {
   final String provider;
   @JsonKey(name: 'user_type', includeIfNull: false)
@@ -144,7 +144,7 @@ class EmailVerificationRequest {
   Map<String, dynamic> toJson() => _$EmailVerificationRequestToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class EmailVerificationResponse {
   final bool success;
   final String message;
@@ -154,8 +154,8 @@ class EmailVerificationResponse {
   final String refreshToken;
   @JsonKey(name: 'next_step')
   final String nextStep;
-  @JsonKey(name: 'is_new_user')
-  final bool isNewUser;
+  @JsonKey(name: 'is_new_user', includeIfNull: false)
+  final bool? isNewUser;
   @JsonKey(name: 'token_expires_in')
   final int tokenExpiresIn;
 
@@ -166,7 +166,7 @@ class EmailVerificationResponse {
     required this.token,
     required this.refreshToken,
     required this.nextStep,
-    required this.isNewUser,
+    this.isNewUser,
     required this.tokenExpiresIn,
   });
 
@@ -175,11 +175,7 @@ class EmailVerificationResponse {
   Map<String, dynamic> toJson() => _$EmailVerificationResponseToJson(this);
 }
 
-// ============================================================
-// USER MODEL - FIXED
-// ============================================================
-
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class User {
   final String id;
   final String userType;
@@ -197,6 +193,14 @@ class User {
   final String updatedAt;
   final double? rating;
   final int totalRides;
+  final bool locationSharingEnabled;
+  final bool detectiveModeEnabled;
+  @JsonKey(name: 'currentRole')
+  final String? currentRole;
+  @JsonKey(name: 'activeRoles')
+  final List<String> activeRoles;
+  @JsonKey(name: 'driverOnboardingStatus')
+  final String driverOnboardingStatus;
 
   User({
     required this.id,
@@ -215,6 +219,11 @@ class User {
     required this.updatedAt,
     this.rating,
     required this.totalRides,
+    required this.locationSharingEnabled,
+    required this.detectiveModeEnabled,
+    this.currentRole,
+    this.activeRoles = const ['rider'],
+    this.driverOnboardingStatus = 'pending',
   });
 
   // Factory constructor to match your API response exactly
@@ -237,6 +246,14 @@ class User {
       rating:
           json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       totalRides: json['totalRides'] ?? 0,
+      locationSharingEnabled: json['locationSharingEnabled'] ?? false,
+      detectiveModeEnabled: json['detectiveModeEnabled'] ?? false,
+      currentRole: json['currentRole'],
+      activeRoles: (json['activeRoles'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const ['rider'],
+      driverOnboardingStatus: json['driverOnboardingStatus'] ?? 'pending',
     );
   }
 
@@ -258,6 +275,11 @@ class User {
       'updatedAt': updatedAt,
       'rating': rating,
       'totalRides': totalRides,
+      'locationSharingEnabled': locationSharingEnabled,
+      'detectiveModeEnabled': detectiveModeEnabled,
+      'current_role': currentRole,
+      'active_roles': activeRoles,
+      'driver_onboarding_status': driverOnboardingStatus,
     };
   }
 
@@ -279,6 +301,8 @@ class User {
     String? updatedAt,
     double? rating,
     int? totalRides,
+    bool? locationSharingEnabled,
+    bool? detectiveModeEnabled,
   }) {
     return User(
       id: id ?? this.id,
@@ -297,6 +321,10 @@ class User {
       updatedAt: updatedAt ?? this.updatedAt,
       rating: rating ?? this.rating,
       totalRides: totalRides ?? this.totalRides,
+      locationSharingEnabled:
+          locationSharingEnabled ?? this.locationSharingEnabled,
+      detectiveModeEnabled:
+          detectiveModeEnabled ?? this.detectiveModeEnabled,
     );
   }
 }
@@ -305,14 +333,14 @@ class User {
 // AUTHENTICATION RESPONSES
 // ============================================================
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class AuthResponse {
   final bool success;
   final String message;
   final User user;
-  final String token;
+  final String? token;
   @JsonKey(name: 'refresh_token')
-  final String refreshToken;
+  final String? refreshToken;
   @JsonKey(name: 'token_expires_in', includeIfNull: false)
   final int? tokenExpiresIn;
   @JsonKey(name: 'next_step', includeIfNull: false)
@@ -324,8 +352,8 @@ class AuthResponse {
     required this.success,
     required this.message,
     required this.user,
-    required this.token,
-    required this.refreshToken,
+    this.token,
+    this.refreshToken,
     this.tokenExpiresIn,
     this.nextStep,
     this.isNewUser,

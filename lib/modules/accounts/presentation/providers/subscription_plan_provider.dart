@@ -1,5 +1,5 @@
-﻿import 'package:flutter/foundation.dart';
-import 'package:ridenowappsss/modules/accounts/data/models/subscrption_plan_model.dart';
+import 'package:flutter/foundation.dart';
+import 'package:ridenowappsss/modules/accounts/data/models/subscription_plan_model.dart';
 import 'package:ridenowappsss/modules/accounts/domain/services/subscription_plan_service.dart';
 
 enum SubscriptionState { initial, loading, loaded, error }

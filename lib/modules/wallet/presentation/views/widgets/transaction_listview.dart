@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
@@ -21,13 +21,15 @@ class TransactionsListView extends StatelessWidget {
   }
 
   int _calculateTotalItems(Map<String, List<WalletTransaction>> grouped) {
+    int count = provider.isFilterActive ? 1 : 0; // Filter indicator
+
     if (grouped.isEmpty && _shouldShowFilterIcon()) {
-      return 2;
+      return count + 1; // Header + Empty state
     }
 
-    int count = grouped.length;
+    count += grouped.length; // Headers
     grouped.forEach((_, transactions) {
-      count += transactions.length;
+      count += transactions.length; // Items
     });
     return count;
   }
@@ -37,8 +39,23 @@ class TransactionsListView extends StatelessWidget {
     int index,
     Map<String, List<WalletTransaction>> grouped,
   ) {
+    int currentIndex = index;
+
+    // 1. Check for Active Filter Indicator
+    if (provider.isFilterActive) {
+      if (currentIndex == 0) {
+        return ActiveFilterIndicator(
+          startDate: provider.filterStartDate,
+          endDate: provider.filterEndDate,
+          onClear: () => provider.clearDateFilter(),
+        );
+      }
+      currentIndex--;
+    }
+
+    // 2. Check for Empty State with Filter
     if (grouped.isEmpty && _shouldShowFilterIcon()) {
-      if (index == 0) {
+      if (currentIndex == 0) {
         return TransactionDateHeader(
           dateGroup: _getFilterHeaderText(),
           isCurrentDay: true,
@@ -49,6 +66,7 @@ class TransactionsListView extends StatelessWidget {
       }
     }
 
+    // 3. Normal List Items (Headers and Transactions)
     final dateGroups = grouped.keys.toList();
     int currentPos = 0;
 
@@ -56,7 +74,7 @@ class TransactionsListView extends StatelessWidget {
       final dateGroup = dateGroups[groupIndex];
       final transactions = grouped[dateGroup]!;
 
-      if (currentPos == index) {
+      if (currentPos == currentIndex) {
         final isFirstGroup = groupIndex == 0;
         return TransactionDateHeader(
           dateGroup: dateGroup,
@@ -70,7 +88,7 @@ class TransactionsListView extends StatelessWidget {
       currentPos++;
 
       for (int i = 0; i < transactions.length; i++) {
-        if (currentPos == index) {
+        if (currentPos == currentIndex) {
           return TransactionItem(transaction: transactions[i]);
         }
         currentPos++;

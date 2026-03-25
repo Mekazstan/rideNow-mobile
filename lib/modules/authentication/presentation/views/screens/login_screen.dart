@@ -14,6 +14,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/providers/auth
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
+import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 
 class LoginView extends StatefulWidget {
@@ -29,15 +30,12 @@ class _LoginViewState extends State<LoginView> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // Google Sign In instance
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: <String>['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
     });
   }
 
@@ -50,16 +48,30 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    ToastService.init(context);
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
 
     return RidenowScaffold(
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (authProvider.isAuthenticated) {
-              ErrorService.showSuccess('Welcome back!');
-              context.goNamed(RouteConstants.ride);
+              // Check if onboarding is complete; route accordingly
+              final onboardingRoute = await authProvider.getOnboardingRoute();
+              if (!context.mounted) return;
+              if (onboardingRoute != null) {
+                context.goNamed(onboardingRoute);
+              } else {
+                ErrorService.showSuccess('Welcome back!');
+                final userType =
+                    authProvider.user?.userType.toLowerCase() ?? 'rider';
+                if (userType == 'driver') {
+                  context.goNamed(RouteConstants.ride);
+                } else {
+                  context.goNamed(RouteConstants.ride);
+                }
+              }
             } else if (authProvider.hasError &&
                 authProvider.lastError != null) {
               ErrorService.handleAuthError(
@@ -318,26 +330,32 @@ class _LoginViewState extends State<LoginView> {
 
     try {
       // Step 1: Perform login
+      if (mounted) AppLoadingDialog.show(context, message: 'Signing you in...');
+      
       final loginSuccess = await authProvider.login(
         email: email,
         password: password,
       );
 
+      if (mounted) Navigator.pop(context); // Hide loading dialog
+
       if (!loginSuccess) {
-        debugPrint('âŒ Login failed');
+        debugPrint('❌ Login failed');
         return; // Error handling is done by Consumer widget above
       }
 
-      debugPrint('âœ… Login API call successful');
+      debugPrint('✅ Login API call successful');
 
       // Step 2: Ensure user profile is loaded
       if (authProvider.user == null) {
-        debugPrint('âš ï¸ User is null after login, fetching profile...');
+        debugPrint('⚠️ User is null after login, fetching profile...');
 
+        if (mounted) AppLoadingDialog.show(context, message: 'Fetching profile...');
         final profileFetched = await authProvider.fetchProfile();
+        if (mounted) Navigator.pop(context); // Hide loading dialog
 
         if (!profileFetched || authProvider.user == null) {
-          debugPrint('âŒ Failed to load user profile');
+          debugPrint('❌ Failed to load user profile');
           ToastService.showError('Failed to load user data. Please try again.');
           return;
         }
@@ -347,7 +365,7 @@ class _LoginViewState extends State<LoginView> {
       final user = authProvider.user!;
       final userType = user.userType.toLowerCase();
 
-      debugPrint('âœ… User data loaded successfully');
+      debugPrint('✅ User data loaded successfully');
       debugPrint('   Name: ${user.firstName} ${user.lastName}');
       debugPrint('   Email: ${user.email}');
       debugPrint('   User Type: $userType');
@@ -359,7 +377,7 @@ class _LoginViewState extends State<LoginView> {
       // Step 4: Navigate based on email verification status
       if (user.emailVerified == false) {
         debugPrint(
-          'ðŸ“§ Email not verified, navigating to verification screen',
+          '📧 Email not verified, navigating to verification screen',
         );
 
         context.goNamed(
@@ -371,11 +389,11 @@ class _LoginViewState extends State<LoginView> {
 
       // Step 5: Navigate to ride screen (handled by Consumer widget)
       debugPrint(
-        'ðŸš€ Login completed, navigation will be handled by Consumer',
+        '🚀 Login completed, navigation will be handled by Consumer',
       );
       debugPrint('=== LOGIN COMPLETED ===');
     } catch (e, stackTrace) {
-      debugPrint('âŒ Login error: $e');
+      debugPrint('❌ Login error: $e');
       debugPrint('Stack trace: $stackTrace');
 
       if (!mounted) return;
@@ -391,8 +409,8 @@ class _LoginViewState extends State<LoginView> {
       // Sign out first to ensure account picker shows
       await _googleSignIn.signOut();
 
-      // Trigger Google Sign-In
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Trigger Google Sign-In (Authentication)
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
 
       if (googleUser == null) {
         // User cancelled the sign-in
@@ -400,21 +418,23 @@ class _LoginViewState extends State<LoginView> {
         return;
       }
 
-      // Get authentication details
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Get Authorization (Access Token)
+      final authorization = await googleUser.authorizationClient.authorizationForScopes(['email', 'profile']);
 
-      if (googleAuth.accessToken == null) {
-        ToastService.showError('Authentication Error');
+      if (authorization?.accessToken == null) {
+        ToastService.showError('Authentication Error: Failed to get access token');
         return;
       }
 
       // Call your API with the access token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (mounted) AppLoadingDialog.show(context, message: 'Authenticating with Google...');
       final success = await authProvider.socialSignIn(
         provider: 'google',
-        accessToken: googleAuth.accessToken!,
+        accessToken: authorization!.accessToken,
       );
+      if (mounted) Navigator.pop(context); // Hide loading dialog
 
       if (!success && mounted) {
         // Error is already handled by the provider
@@ -452,10 +472,13 @@ class _LoginViewState extends State<LoginView> {
 
       // Call your API with the identity token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (mounted) AppLoadingDialog.show(context, message: 'Authenticating with Apple...');
       await authProvider.socialSignIn(
         provider: 'apple',
         accessToken: credential.identityToken!,
       );
+      if (mounted) Navigator.pop(context); // Hide loading dialog
     } catch (e) {
       debugPrint('Apple Sign-In Error: $e');
 

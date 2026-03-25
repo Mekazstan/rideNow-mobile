@@ -37,7 +37,6 @@ class _LetsGetToKnowYouScreenState extends State<LetsGetToKnowYouScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
       _loadUserData();
     });
   }
@@ -424,23 +423,30 @@ class _LetsGetToKnowYouScreenState extends State<LetsGetToKnowYouScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       if (authProvider.isAuthenticated) {
-        final success = await authProvider.updateProfile(
+        final dateOfBirth = _selectedDate != null
+            ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
+            : null;
+
+        ToastService.init(context);
+
+        final success = await authProvider.submitBioData(
           firstName: firstName,
           lastName: lastName,
           phone: fullPhoneNumber,
+          dateOfBirth: dateOfBirth ?? '',
         );
-        
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          
-          if (success) {
-            ToastService.showSuccess('Profile Updated!');
-            context.goNamed(RouteConstants.emergencyContact);
-          } else {
-            ToastService.showError(authProvider.errorMessage ?? 'Update failed');
-          }
+
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (success) {
+          ToastService.showSuccess('Profile Updated!');
+          context.goNamed(RouteConstants.emergencyContact);
+        } else {
+          ToastService.showError(authProvider.errorMessage ?? 'Update failed');
         }
         return;
       }

@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -124,11 +124,6 @@ class _GoogleMapViewState extends State<_GoogleMapView> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final profilePhoto = authProvider.user?.profilePhoto;
-    if (widget.viewModel.rideDetails == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.viewModel.setUserProfilePhoto(profilePhoto);
-      });
-    }
 
     return GoogleMap(
       onMapCreated: (controller) async {
@@ -217,7 +212,6 @@ class _RideModeToggle extends StatelessWidget {
 
     return Container(
       height: 40.h,
-      width: 120.w,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25.r),
         color: appColors?.gray100 ?? Colors.grey[200],
@@ -231,6 +225,7 @@ class _RideModeToggle extends StatelessWidget {
       ),
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           SvgPicture.asset(
             'assets/cars.svg',
@@ -240,7 +235,7 @@ class _RideModeToggle extends StatelessWidget {
               BlendMode.srcIn,
             ),
           ),
-          SizedBox(width: 4.w),
+          SizedBox(width: 8.w),
           Text(
             'Ride',
             style: (appFonts?.textSmMedium ??
@@ -251,14 +246,6 @@ class _RideModeToggle extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
           ),
-          SizedBox(width: 4.w),
-          Container(
-            height: 13.h,
-            width: 1.w,
-            color: appColors?.pink500 ?? Colors.pink,
-          ),
-          SizedBox(width: 4.w),
-          Image.asset('assets/food2.png', height: 16.h),
         ],
       ),
     );

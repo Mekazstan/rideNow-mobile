@@ -13,6 +13,9 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/modules/ride/data/repositories/places_repository.dart';
+import 'package:ridenowappsss/core/services/service_locator.dart';
+import 'package:ridenowappsss/shared/widgets/switch_role_modal.dart';
 
 class RideNowSideMenu extends StatefulWidget {
   const RideNowSideMenu({super.key});
@@ -28,6 +31,7 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
   final Set<Marker> _markers = {};
   bool _isLoggingOut = false;
   bool _isLoadingProfile = true;
+  String _currentLocationName = 'Locating...';
 
   static const LatLng _defaultLocation = LatLng(6.3350, 5.6037);
 
@@ -112,7 +116,19 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
   }
 
   /// Gets readable location name from coordinates
-  void _getLocationName(double latitude, double longitude) {}
+  Future<void> _getLocationName(double latitude, double longitude) async {
+    try {
+      final placesRepo = getIt<PlacesRepository>();
+      final details = await placesRepo.reverseGeocodeAddress(latitude, longitude);
+      if (mounted && details != null && details.formattedAddress != null) {
+        setState(() {
+          _currentLocationName = details.formattedAddress!;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting location name: $e');
+    }
+  }
 
   /// Adds marker to map at specified position
   void _addMarker(LatLng position) {
@@ -175,10 +191,20 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            Text(
+              _currentLocationName,
+              style: appFonts.textSmMedium.copyWith(
+                color: appColors.textPrimary,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             SizedBox(height: 6.h),
             Container(
               height: 187.h,
-              width: 279.w,
+              width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: appColors.gray200, width: 1),
@@ -243,13 +269,13 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
                     subItems: [
                       SubMenuItem(
                         title: 'Rider',
-                        onTap: () => _handleSwitchAccount('rider'),
-                        hasCheckmark: user?.userType.toLowerCase() == 'rider',
+                        onTap: () => _showSwitchRoleModal('rider'),
+                        hasCheckmark: (user?.currentRole ?? user?.userType)?.toLowerCase() == 'rider',
                       ),
                       SubMenuItem(
                         title: 'Driver',
-                        onTap: () => _handleSwitchAccount('driver'),
-                        hasCheckmark: user?.userType.toLowerCase() == 'driver',
+                        onTap: () => _showSwitchRoleModal('driver'),
+                        hasCheckmark: (user?.currentRole ?? user?.userType)?.toLowerCase() == 'driver',
                       ),
                       // subItem(
                       //   title: 'Vendor',
@@ -383,26 +409,34 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 6.h),
-              Row(
-                children: [
-                  SvgPicture.asset('assets/verify.svg'),
-                  SizedBox(width: 6.w),
-                  Text(
-                    user?.verificationStatus == true
-                        ? 'Verified'
-                        : 'Unverified',
-                    style: appFonts.textSmMedium.copyWith(
-                      color:
-                          user?.verificationStatus == true
-                              ? appColors.pink300
-                              : appColors.gray400,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w300,
-                    ),
+            SizedBox(height: 6.h),
+            Row(
+              children: [
+                SvgPicture.asset(
+                  'assets/verify.svg',
+                  colorFilter: ColorFilter.mode(
+                    user?.verificationStatus?.toLowerCase() == 'verified'
+                        ? appColors.pink300
+                        : appColors.gray400.withOpacity(0.5),
+                    BlendMode.srcIn,
                   ),
-                ],
-              ),
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  user?.verificationStatus?.toLowerCase() == 'verified'
+                      ? 'Verified'
+                      : 'Unverified',
+                  style: appFonts.textSmMedium.copyWith(
+                    color:
+                        user?.verificationStatus?.toLowerCase() == 'verified'
+                            ? appColors.pink300
+                            : appColors.gray400,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ],
+            ),
             ],
           ),
         ),
@@ -499,168 +533,77 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
-  }
-
-  Future<void> _handleSwitchAccount(String targetUserType) async {
-    final appColors = Theme.of(context).extension<AppColorExtension>()!;
-    final authProvider = context.read<AuthProvider>();
-    final currentUserType = authProvider.user?.userType.toLowerCase();
-
-    debugPrint('=== SWITCH ACCOUNT INITIATED ===');
-    debugPrint('Current user type: $currentUserType');
-    debugPrint('Target user type: $targetUserType');
-
-    // Return if already on target account type
-    if (currentUserType == targetUserType.toLowerCase()) {
-      debugPrint('Already on target account type, closing drawer');
-      if (mounted) Navigator.pop(context);
-      return;
-    }
-
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('Switch Account'),
-            content: Text(
-              'You will be logged out and need to sign in with your ${targetUserType[0].toUpperCase()}${targetUserType.substring(1)} account.\n\nDo you want to continue?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  debugPrint('Switch account cancelled');
-                  Navigator.pop(dialogContext, false);
-                },
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  debugPrint('Switch account confirmed');
-                  Navigator.pop(dialogContext, true);
-                },
-                style: TextButton.styleFrom(foregroundColor: appColors.blue600),
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirmed != true) {
-      debugPrint('Switch account cancelled by user');
-      return;
-    }
-
-    // Show loading dialog
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (ctx) => WillPopScope(
-            onWillPop: () async => false,
-            child: const Center(
-              child: Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Switching account...'),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-    );
-
-    try {
-      debugPrint('Logging out current account...');
-
-      // Perform logout
-      await authProvider.logout();
-
-      debugPrint('âœ… Logout completed');
-
-      // Wait for state to update
-      await Future.delayed(const Duration(milliseconds: 200));
+    } catch (e) {
+      debugPrint('â Œ Logout error: $e');
 
       if (!mounted) return;
 
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      // Close drawer
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
-
-      // Small delay before navigation
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      if (!mounted) return;
-
-      // Navigate to login
-      debugPrint('ðŸš€ Navigating to login screen');
-      context.go('/login');
-
-      // Show instruction message
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      if (!mounted) return;
+      setState(() => _isLoggingOut = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Please login with your ${targetUserType[0].toUpperCase()}${targetUserType.substring(1)} credentials',
-          ),
-          backgroundColor: appColors.blue500,
-          duration: const Duration(seconds: 4),
+          content: Text('Logout failed: ${e.toString()}'),
+          backgroundColor: appColors.red400,
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );
-
-      debugPrint('=== SWITCH ACCOUNT COMPLETED ===');
-    } catch (e, stackTrace) {
-      debugPrint('âŒ Switch account error: $e');
-      debugPrint('Stack trace: $stackTrace');
-
-      if (!mounted) return;
-
-      // Close loading dialog if still open
-      try {
-        Navigator.of(context).pop();
-      } catch (_) {}
-
-      // Try to navigate to login anyway
-      try {
-        if (Navigator.canPop(context)) {
-          Navigator.of(context).pop();
-        }
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (mounted) {
-          context.go('/login');
-        }
-      } catch (navError) {
-        debugPrint('âŒ Navigation error: $navError');
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to switch account: ${e.toString()}'),
-            backgroundColor: appColors.red400,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
     }
+  }
+
+  void _showSwitchRoleModal(String targetRole) {
+    final authProvider = context.read<AuthProvider>();
+    final userRole = (authProvider.user?.currentRole ?? authProvider.user?.userType ?? 'rider').toLowerCase();
+
+    if (userRole == targetRole.toLowerCase()) {
+      _showAlreadyInRoleModal(targetRole);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SwitchRoleModal(targetRole: targetRole),
+    );
+  }
+
+  void _showAlreadyInRoleModal(String role) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Account Switch',
+          style: appFonts.textSmMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 18.sp,
+          ),
+        ),
+        content: Text(
+          'You are already a ${role.toLowerCase()}.',
+          style: appFonts.textSmMedium.copyWith(
+            color: appColors.textSecondary,
+            fontSize: 16.sp,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: appColors.pink600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

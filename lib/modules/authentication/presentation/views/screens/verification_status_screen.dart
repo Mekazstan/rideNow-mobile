@@ -7,7 +7,6 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
-import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/document_resubmission_screen.dart';
 
 class VerificationStatusScreen extends StatefulWidget {

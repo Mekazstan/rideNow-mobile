@@ -1,6 +1,6 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/core/services/network_services.dart';
-import 'package:ridenowappsss/modules/accounts/data/models/subscrption_plan_model.dart';
+import 'package:ridenowappsss/modules/accounts/data/models/subscription_plan_model.dart';
 
 class SubscriptionService {
   final DioClient _dioClient = DioClient();

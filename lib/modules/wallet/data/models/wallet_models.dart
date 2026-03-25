@@ -40,6 +40,10 @@ class WalletTransaction {
   final double balanceAfter;
   @JsonKey(name: 'created_at')
   final String createdAt;
+  @JsonKey(name: 'payment_url')
+  final String? paymentUrl;
+  @JsonKey(name: 'payment_metadata')
+  final Map<String, dynamic>? paymentMetadata;
 
   WalletTransaction({
     required this.id,
@@ -53,6 +57,8 @@ class WalletTransaction {
     this.balanceBefore,
     required this.balanceAfter,
     required this.createdAt,
+    this.paymentUrl,
+    this.paymentMetadata,
   });
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) =>
@@ -194,6 +200,7 @@ class BankAccount {
   final double? dailyWithdrawalLimit;
   final double? monthlyWithdrawalLimit;
   final DateTime? createdAt;
+  final String? logo;
 
   BankAccount({
     required this.id,
@@ -207,6 +214,7 @@ class BankAccount {
     this.dailyWithdrawalLimit,
     this.monthlyWithdrawalLimit,
     this.createdAt,
+    this.logo,
   });
 
   // Getter for backward compatibility
@@ -247,6 +255,7 @@ class BankAccount {
               : json['created_at'] != null
               ? DateTime.tryParse(json['created_at'].toString())
               : null,
+      logo: json['logo']?.toString(),
     );
   }
 
@@ -263,6 +272,7 @@ class BankAccount {
       'dailyWithdrawalLimit': dailyWithdrawalLimit,
       'monthlyWithdrawalLimit': monthlyWithdrawalLimit,
       'createdAt': createdAt?.toIso8601String(),
+      'logo': logo,
     };
   }
 
@@ -278,6 +288,7 @@ class BankAccount {
     double? dailyWithdrawalLimit,
     double? monthlyWithdrawalLimit,
     DateTime? createdAt,
+    String? logo,
   }) {
     return BankAccount(
       id: id ?? this.id,
@@ -292,6 +303,7 @@ class BankAccount {
       monthlyWithdrawalLimit:
           monthlyWithdrawalLimit ?? this.monthlyWithdrawalLimit,
       createdAt: createdAt ?? this.createdAt,
+      logo: logo ?? this.logo,
     );
   }
 }

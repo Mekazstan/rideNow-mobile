@@ -1,7 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/wallet_models.dart';
@@ -99,6 +102,75 @@ class WalletActionButtons extends StatelessWidget {
   }
 }
 
+class ActiveFilterIndicator extends StatelessWidget {
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final VoidCallback onClear;
+
+  const ActiveFilterIndicator({
+    super.key,
+    required this.startDate,
+    required this.endDate,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (startDate == null && endDate == null) return const SizedBox.shrink();
+
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    String filterText = '';
+    if (startDate != null && endDate != null) {
+      filterText =
+          '${DateFormat('MMM dd').format(startDate!)} - ${DateFormat('MMM dd').format(endDate!)}';
+    } else if (startDate != null) {
+      filterText = 'From ${DateFormat('MMM dd').format(startDate!)}';
+    } else if (endDate != null) {
+      filterText = 'To ${DateFormat('MMM dd').format(endDate!)}';
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: 8.h),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: appColors.blue50,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: appColors.blue100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.filter_list, size: 16.sp, color: appColors.blue600),
+            SizedBox(width: 8.w),
+            Text(
+              'Filter: $filterText',
+              style: appFonts.textSmMedium.copyWith(
+                color: appColors.blue600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            GestureDetector(
+              onTap: onClear,
+              child: Container(
+                padding: EdgeInsets.all(2.w),
+                decoration: BoxDecoration(
+                  color: appColors.blue600.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.close, size: 14.sp, color: appColors.blue600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Individual wallet action button
 class WalletActionButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -168,7 +240,9 @@ class WalletTransactionsList extends StatelessWidget {
       return TransactionsErrorState(onRetry: onRetry);
     }
 
-    if (provider.transactions.isEmpty && !provider.isLoading) {
+    if (provider.transactions.isEmpty &&
+        !provider.isLoading &&
+        !provider.isFilterActive) {
       return const TransactionsEmptyState();
     }
 
@@ -310,16 +384,28 @@ class TransactionItem extends StatelessWidget {
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
     final colors = _getTransactionColors(transaction, appColors);
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      height: 65.h,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: colors['container'],
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
+    // Derive the display label: pending withdrawals show "Processing"
+    final statusLabel = (transaction.status.toLowerCase() == 'pending' &&
+            transaction.isWithdrawal)
+        ? 'Processing'
+        : transaction.status;
+
+    return InkWell(
+      onTap:
+          transaction.status.toLowerCase() == 'pending'
+              ? () => _showPendingTransactionDetails(context)
+              : null,
+      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
+        constraints: BoxConstraints(minHeight: 65.h),
+        margin: EdgeInsets.only(bottom: 12.h),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: colors['container'],
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: colors['statusBorder']!, width: 0.5),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Column(
           children: [
             Row(
@@ -329,47 +415,296 @@ class TransactionItem extends StatelessWidget {
                   child: Text(
                     transaction.description,
                     style: appFonts.textSmMedium.copyWith(
-                      color: colors['title'],
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
+                      color: appColors.gray900,
+                      fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 TransactionStatusBadge(
-                  status: transaction.status,
+                  status: statusLabel,
                   backgroundColor: colors['statusBg']!,
                   textColor: colors['statusText']!,
                   borderColor: colors['statusBorder']!,
                 ),
               ],
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 8.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   transaction.formattedDate,
-                  style: appFonts.textSmMedium.copyWith(
-                    color: colors['date'],
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w300,
+                  style: appFonts.textXsRegular.copyWith(
+                    color: appColors.gray500,
                   ),
                 ),
                 Text(
-                  '${transaction.currency} ${_formatAmount(transaction.amount)}',
-                  style: appFonts.textSmMedium.copyWith(
+                  '${transaction.isDeposit ? "+" : "-"}${transaction.currency} ${_formatAmount(transaction.amount)}',
+                  style: appFonts.textSmBold.copyWith(
                     color: colors['amount'],
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
+            if (transaction.status.toLowerCase() == 'pending' && transaction.isDeposit) ...[
+              SizedBox(height: 8.h),
+              const Divider(height: 1),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Tap to complete payment',
+                    style: appFonts.textXsMedium.copyWith(
+                      color: appColors.blue600,
+                    ),
+                  ),
+                  SizedBox(width: 4.w),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 10.sp,
+                    color: appColors.blue600,
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  void _showPendingTransactionDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => PendingTransactionSheet(transaction: transaction),
+    );
+  }
+}
+
+class PendingTransactionSheet extends StatelessWidget {
+  final WalletTransaction transaction;
+
+  const PendingTransactionSheet({super.key, required this.transaction});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    final isBankTransfer =
+        transaction.description.toLowerCase().contains('bank transfer') ||
+        transaction.paymentMetadata != null;
+
+    final metadata = transaction.paymentMetadata;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 32.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: appColors.gray200,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+          ),
+          SizedBox(height: 24.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                transaction.isDeposit
+                    ? 'Complete Deposit'
+                    : 'Withdrawal Processing',
+                style: appFonts.textLgBold.copyWith(
+                  color: appColors.gray900,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: appColors.gray100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.close, size: 20.sp),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            transaction.isDeposit
+                ? 'You have a pending deposit of ${transaction.currency}${transaction.amount.abs().toStringAsFixed(0)}. Please complete the payment below.'
+                : 'Your withdrawal of ${transaction.currency}${transaction.amount.abs().toStringAsFixed(0)} is being processed. Funds will be sent to the account below.',
+            style: appFonts.textSmRegular.copyWith(
+              color: appColors.gray600,
+            ),
+          ),
+          SizedBox(height: 24.h),
+          if (isBankTransfer && metadata != null) ...[
+            _buildDetailRow(
+              context,
+              'Account Number',
+              metadata['account_number']?.toString() ?? 'N/A',
+              showCopy: true,
+            ),
+            SizedBox(height: 16.h),
+            _buildDetailRow(
+              context,
+              'Bank Name',
+              metadata['bank_name']?.toString() ?? 'N/A',
+            ),
+            SizedBox(height: 16.h),
+            _buildDetailRow(
+              context,
+              'Account Name',
+              metadata['account_name']?.toString() ?? 'N/A',
+            ),
+          ] else if (transaction.paymentUrl != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _openPaymentUrl(transaction.paymentUrl!);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: appColors.blue600,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Continue to Paystack',
+                  style: appFonts.textBaseBold.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+          ] else if (transaction.isWithdrawal) ...[
+            // Withdrawal — show a success confirmation message
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: appColors.green50,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline, color: appColors.green400),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      'Withdrawal sent successfully. Funds typically arrive within 1–3 business days depending on your bank.',
+                      style: appFonts.textSmMedium.copyWith(
+                        color: appColors.green600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: appColors.red50,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: appColors.red600),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      'Payment details are currently unavailable for this transaction.',
+                      style: appFonts.textSmMedium.copyWith(
+                        color: appColors.red600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(BuildContext context, String label, String value,
+      {bool showCopy = false}) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: appColors.gray50,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.gray100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: appFonts.textXsMedium.copyWith(color: appColors.gray500),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style:
+                      appFonts.textMdBold.copyWith(color: appColors.gray900),
+                ),
+              ),
+              if (showCopy)
+                GestureDetector(
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(text: value));
+                    if (context.mounted) {
+                      ToastService.showSuccess('$label copied to clipboard');
+                    }
+                  },
+                  child: Icon(Icons.copy, size: 20.sp, color: appColors.blue600),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  void _openPaymentUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
   }
 }
 

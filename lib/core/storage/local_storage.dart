@@ -1,4 +1,4 @@
-﻿
+
 
 // ignore_for_file: empty_catches
 
@@ -111,15 +111,8 @@ class SecureStorageService {
 
   /// Check if session is expired
   Future<bool> isSessionExpired() async {
-    try {
-      final loginTime = await getLoginTime();
-      if (loginTime == null) return true;
-
-      final sessionDuration = DateTime.now().difference(loginTime);
-      return sessionDuration.inHours >= 2;
-    } catch (e) {
-      return true;
-    }
+    // We rely on token expiration from the backend instead of a hardcoded local limit.
+    return false;
   }
 
   /// Get time until session expires
@@ -147,10 +140,18 @@ class SecureStorageService {
 
       return isLoggedIn == 'true' &&
           token != null &&
-          !isTokenExpired &&
-          !isSessionExpired;
+          !isTokenExpired;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Save user data
+  Future<void> saveUserData(User user) async {
+    try {
+      await _storage.write(key: _userKey, value: jsonEncode(user.toJson()));
+    } catch (e) {
+      throw Exception('Failed to save user data: $e');
     }
   }
 

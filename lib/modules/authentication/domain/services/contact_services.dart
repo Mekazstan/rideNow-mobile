@@ -1,4 +1,4 @@
-﻿import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/emergency_contact_model.dart';
 
@@ -26,27 +26,27 @@ class ContactService {
         }
       }
 
-      final contacts = await FlutterContacts.getContacts(
-        withProperties: true,
-        withPhoto: false,
+      final contacts = await FlutterContacts.getAll(
+        properties: {ContactProperty.phone, ContactProperty.email},
       );
 
       return contacts
           .where(
             (contact) =>
-                contact.phones.isNotEmpty && contact.displayName.isNotEmpty,
+                contact.phones.isNotEmpty && (contact.displayName?.isNotEmpty ?? false),
           )
           .map(
             (contact) => EmergencyContact(
-              id: contact.id,
-              name: contact.displayName,
-              phoneNumber: contact.phones.first.number,
+              id: contact.id ?? '',
+              name: contact.displayName ?? '',
+              phone: contact.phones.first.number,
               email:
                   contact.emails.isNotEmpty
                       ? contact.emails.first.address
                       : null,
             ),
           )
+          .cast<EmergencyContact>()
           .toList()
         ..sort((a, b) => a.name.compareTo(b.name));
     } catch (e) {

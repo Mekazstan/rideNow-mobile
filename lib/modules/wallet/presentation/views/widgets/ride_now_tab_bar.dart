@@ -6,19 +6,15 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 class RideNowTabBar extends StatefulWidget {
   const RideNowTabBar({
     super.key,
-    required this.firstTabText,
-    required this.secondTabText,
-    required this.firstTabContent,
-    required this.secondTabContent,
+    required this.tabs,
+    required this.tabContents,
     required this.appFonts,
     required this.appColors,
     this.initialTabIndex = 0,
-  });
+  }) : assert(tabs.length == tabContents.length);
 
-  final String firstTabText;
-  final String secondTabText;
-  final Widget firstTabContent;
-  final Widget secondTabContent;
+  final List<String> tabs;
+  final List<Widget> tabContents;
   final AppFontThemeExtension appFonts;
   final AppColorExtension appColors;
   final int initialTabIndex;
@@ -38,86 +34,48 @@ class _RideNowTabBarState extends State<RideNowTabBar> {
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColorExtension>()!;
     return Column(
       children: [
         Row(
-          children: [
-            Expanded(
+          children: List.generate(
+            widget.tabs.length,
+            (index) => Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => selectedTabIndex = 0),
+                onTap: () => setState(() => selectedTabIndex = index),
                 child: Container(
                   padding: EdgeInsets.symmetric(vertical: 12.h),
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color:
-                            selectedTabIndex == 0
-                                ? appColors.blue500
-                                : appColors.gray300,
+                        color: selectedTabIndex == index
+                            ? widget.appColors.blue500
+                            : widget.appColors.gray300,
                         width: 2.w,
                       ),
                     ),
                   ),
                   child: Text(
-                    widget.firstTabText,
+                    widget.tabs[index],
                     textAlign: TextAlign.center,
                     style: widget.appFonts.textSmMedium.copyWith(
-                      color:
-                          selectedTabIndex == 0
-                              ? appColors.blue500
-                              : appColors.gray300,
+                      color: selectedTabIndex == index
+                          ? widget.appColors.blue500
+                          : widget.appColors.textSecondary,
                       fontSize: 16.sp,
-                      fontWeight:
-                          selectedTabIndex == 0
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                      fontWeight: selectedTabIndex == index
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => selectedTabIndex = 1),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color:
-                            selectedTabIndex == 1
-                                ? appColors.blue500
-                                : appColors.gray300,
-                        width: 2.w,
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    widget.secondTabText,
-                    textAlign: TextAlign.center,
-                    style: widget.appFonts.textSmMedium.copyWith(
-                      color:
-                          selectedTabIndex == 1
-                              ? appColors.blue500
-                              : appColors.textSecondary,
-                      fontSize: 16.sp,
-                      fontWeight:
-                          selectedTabIndex == 1
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-
         Flexible(
           child: IndexedStack(
             index: selectedTabIndex,
-            children: [widget.firstTabContent, widget.secondTabContent],
+            children: widget.tabContents,
           ),
         ),
       ],

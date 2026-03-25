@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
@@ -111,30 +111,13 @@ class _AddANewBankCardState extends State<AddANewBankCard> {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
-        _addBankAccount2(context, appColors, bank.name, bank.code);
+        _addBankAccount2(context, appColors, bank.name, bank.code, bank.logo);
       },
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         child: Row(
           children: [
-            bank.logo != null
-                ? Image.network(
-                  bank.logo!,
-                  width: 24.w,
-                  height: 24.h,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.account_balance,
-                      size: 24.sp,
-                      color: appColors.gray400,
-                    );
-                  },
-                )
-                : Icon(
-                  Icons.account_balance,
-                  size: 24.sp,
-                  color: appColors.gray400,
-                ),
+            _buildBankLogo(bank, appColors),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
@@ -147,6 +130,36 @@ class _AddANewBankCardState extends State<AddANewBankCard> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBankLogo(Bank bank, AppColorExtension appColors) {
+    final logoUrl =
+        bank.logo ?? 'https://cdn.paystack.co/bank/logos/${bank.code}.png';
+
+    return Container(
+      width: 32.w,
+      height: 32.w,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: appColors.gray200, width: 0.5),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          logoUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Icon(
+                Icons.account_balance,
+                size: 18.sp,
+                color: appColors.gray400,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -242,6 +255,7 @@ class _AddANewBankCardState extends State<AddANewBankCard> {
     AppColorExtension appColors,
     String selectedBankName,
     String selectedBankCode,
+    String? bankLogo,
   ) async {
     return await RideNowBottomSheet.show<BankAccount>(
       context: context,
@@ -251,6 +265,7 @@ class _AddANewBankCardState extends State<AddANewBankCard> {
       child: AddANewBankAccount2(
         selectedBankName: selectedBankName,
         selectedBankCode: selectedBankCode,
+        bankLogo: bankLogo,
       ),
     );
   }

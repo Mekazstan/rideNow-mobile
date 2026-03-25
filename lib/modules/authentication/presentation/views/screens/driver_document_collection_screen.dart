@@ -33,7 +33,6 @@ class _DriverDocumentCollectionScreenState
   @override
   void initState() {
     super.initState();
-    ToastService.init(context);
   }
 
   final Map<String, File?> _documents = {

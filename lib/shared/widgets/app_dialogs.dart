@@ -229,3 +229,148 @@ class AppErrorDialog extends StatelessWidget {
     );
   }
 }
+class AppLoadingDialog extends StatelessWidget {
+  final String message;
+
+  const AppLoadingDialog({
+    super.key,
+    this.message = 'Please wait...',
+  });
+
+  static void show(BuildContext context, {String message = 'Please wait...'}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AppLoadingDialog(message: message),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 48.w,
+              height: 48.w,
+              child: CircularProgressIndicator(
+                strokeWidth: 3.w,
+                valueColor: AlwaysStoppedAnimation<Color>(appColors.brandDefault),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: appFonts.textBaseMedium.copyWith(
+                color: appColors.textPrimary,
+                fontSize: 16.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LocationPermissionDialog extends StatelessWidget {
+  final VoidCallback onEnable;
+
+  const LocationPermissionDialog({
+    super.key,
+    required this.onEnable,
+  });
+
+  static void show(
+    BuildContext context, {
+    required VoidCallback onEnable,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LocationPermissionDialog(onEnable: onEnable),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: appColors.blue50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.location_on_rounded,
+                color: appColors.blue500,
+                size: 32.sp,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              'Enable Location',
+              textAlign: TextAlign.center,
+              style: appFonts.textBaseMedium.copyWith(
+                color: appColors.textPrimary,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Please enable location sharing to see your current location and find nearby rides instantly.',
+              textAlign: TextAlign.center,
+              style: appFonts.textSmRegular.copyWith(
+                color: appColors.textSecondary,
+                fontSize: 14.sp,
+              ),
+            ),
+            SizedBox(height: 32.h),
+            LoadingButton(
+              text: 'Enable Location',
+              onPressed: () {
+                Navigator.pop(context);
+                onEnable();
+              },
+              backgroundColor: appColors.blue500,
+              height: 52,
+              borderRadius: 12,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

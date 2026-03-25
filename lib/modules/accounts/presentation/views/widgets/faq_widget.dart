@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -86,6 +86,41 @@ class _FaqWidgetState extends State<FaqWidget> {
         RideNowSearchBar(
           hintText: 'Ask a question or enter a keyword',
           controller: _searchController,
+        ),
+        SizedBox(height: 16.h),
+        Consumer<SupportProvider>(
+          builder: (context, provider, child) {
+            if (provider.faqCategories.isEmpty) return const SizedBox.shrink();
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: provider.faqCategories.map((category) {
+                  final isSelected = provider.selectedCategory == category ||
+                      (provider.selectedCategory == null && category == 'all');
+                  return Padding(
+                    padding: EdgeInsets.only(right: 8.w),
+                    child: ChoiceChip(
+                      label: Text(category),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          provider.setSelectedCategory(category);
+                        }
+                      },
+                      selectedColor: appColors.blue500,
+                      backgroundColor: appColors.gray100,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : appColors.textPrimary,
+                        fontSize: 12.sp,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          },
         ),
         SizedBox(height: 24.h),
         Expanded(
@@ -198,6 +233,10 @@ class _FaqWidgetState extends State<FaqWidget> {
                 SizedBox(height: 16.h),
                 ElevatedButton(
                   onPressed: _loadFaqs,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.pink500,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Retry'),
                 ),
               ],

@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -539,7 +539,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             ),
             SizedBox(height: 8.h),
             Text(
-              'Amount: â‚¦${widget.amount.toStringAsFixed(2)}',
+              'Amount: ₦${widget.amount.toStringAsFixed(2)}',
               style: appFonts.textSmMedium.copyWith(
                 color: appColors.pink500,
                 fontSize: 16.sp,

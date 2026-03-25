@@ -24,6 +24,49 @@ class AuthService {
   static const String _refreshTokenEndpoint = '/auth/refresh';
   static const String _sendVerificationEndpoint = '/auth/send-verification';
   static const String _verifyEmailEndpoint = '/auth/verify-email';
+  static const String _switchRoleEndpoint = '/auth/switch-role';
+  static const String _startDriverOnboardingEndpoint = '/auth/start-driver-onboarding';
+
+  // ============================================================
+  // ROLE MANAGEMENT
+  // ============================================================
+
+  Future<AuthResponse> switchRole(String targetRole) async {
+    try {
+      if (kDebugMode) {
+        print('=== Switch Role ===');
+        print('Target Role: $targetRole');
+      }
+
+      final response = await _dioClient.patch(
+        _switchRoleEndpoint,
+        data: {'target_role': targetRole},
+      );
+
+      return AuthResponse.fromJson(response.data);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Switch Role Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> startDriverOnboarding() async {
+    try {
+      if (kDebugMode) {
+        print('=== Start Driver Onboarding ===');
+      }
+
+      final response = await _dioClient.post(_startDriverOnboardingEndpoint);
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Start Driver Onboarding Error: $e');
+      }
+      rethrow;
+    }
+  }
 
   // ============================================================
   // USER PROFILE
@@ -67,6 +110,7 @@ class AuthService {
     String? firstName,
     String? lastName,
     String? phone,
+    String? dateOfBirth,
   }) async {
     try {
       if (kDebugMode) {
@@ -78,6 +122,7 @@ class AuthService {
       if (firstName != null && firstName.isNotEmpty) data['firstName'] = firstName;
       if (lastName != null && lastName.isNotEmpty) data['lastName'] = lastName;
       if (phone != null && phone.isNotEmpty) data['phone'] = phone;
+      if (dateOfBirth != null && dateOfBirth.isNotEmpty) data['dateOfBirth'] = dateOfBirth;
 
       final response = await _dioClient.patch(
         ApiConstants.profileEndpoint,
@@ -102,6 +147,107 @@ class AuthService {
     } catch (e) {
       if (kDebugMode) {
         print('Update Profile Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> submitBioData({
+    required String fullName,
+    required String dateOfBirth,
+    String? phone,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('=== Submit Bio Data ===');
+        print('Endpoint: ${ApiConstants.submitBioDataEndpoint}');
+      }
+
+      final Map<String, dynamic> data = {
+        'full_name': fullName,
+        'date_of_birth': dateOfBirth,
+      };
+      if (phone != null && phone.isNotEmpty) data['phone_number'] = phone;
+
+      final response = await _dioClient.post(
+        ApiConstants.submitBioDataEndpoint,
+        data: data,
+      );
+
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Submit Bio Data Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchOnboardingStatus() async {
+    try {
+      final response = await _dioClient.get('/onboardings/status');
+      return response.data as Map<String, dynamic>?;
+    } catch (e) {
+      if (kDebugMode) print('fetchOnboardingStatus error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> submitVehicleSetup({
+    required String licensePlate,
+    required String vehicleType,
+    String? make,
+    String? model,
+    int? year,
+    String? color,
+    List<File>? carImageFiles,
+    File? identificationFile,
+    String? identificationType,
+    String? identificationNumber,
+  }) async {
+    try {
+      final Map<String, dynamic> data = {
+        'license_plate': licensePlate,
+        'vehicle_type': vehicleType,
+        if (make != null) 'make': make,
+        if (model != null) 'model': model,
+        if (year != null) 'year': year,
+        if (color != null) 'color': color,
+        if (identificationType != null) 'identification_type': identificationType,
+        if (identificationNumber != null) 'identification_number': identificationNumber,
+      };
+
+      final formData = FormData.fromMap(data);
+
+      if (carImageFiles != null && carImageFiles.isNotEmpty) {
+        for (var file in carImageFiles) {
+          formData.files.add(
+            MapEntry(
+              'car_image_files',
+              await MultipartFile.fromFile(file.path),
+            ),
+          );
+        }
+      }
+
+      if (identificationFile != null) {
+        formData.files.add(
+          MapEntry(
+            'identification_file',
+            await MultipartFile.fromFile(identificationFile.path),
+          ),
+        );
+      }
+
+      await _dioClient.post(
+        ApiConstants.driversVehicleSetupEndpoint,
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Submit Vehicle Setup Error: $e');
       }
       rethrow;
     }
@@ -158,6 +304,23 @@ class AuthService {
     } catch (e) {
       if (kDebugMode) {
         print('Upload Profile Photo Error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> batchUploadDriverDocuments({
+    required List<Map<String, dynamic>> documents,
+  }) async {
+    try {
+      await _dioClient.post(
+        ApiConstants.driversDocumentsBatchEndpoint,
+        data: {'documents': documents},
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Batch Upload Driver Documents Error: $e');
       }
       rethrow;
     }
@@ -222,7 +385,9 @@ class AuthService {
       );
 
       final authResponse = AuthResponse.fromJson(response.data);
-      _dioClient.setAuthToken(authResponse.token);
+      if (authResponse.token != null) {
+        _dioClient.setAuthToken(authResponse.token!);
+      }
 
       return authResponse;
     } catch (e) {
@@ -232,19 +397,19 @@ class AuthService {
 
   Future<AuthResponse> signUp({
     required String userType,
-    required String firstName,
-    required String lastName,
-    required String phone,
+    String? firstName,
+    String? lastName,
+    String? phone,
     required String email,
     required String password,
     required String confirmPassword,
   }) async {
     try {
-      final requestData = {
+      final requestData = <String, dynamic>{
         'user_type': userType,
-        'firstName': firstName.trim(),
-        'lastName': lastName.trim(),
-        'phone': phone.trim(),
+        if (firstName?.trim().isNotEmpty == true) 'firstName': firstName!.trim(),
+        if (lastName?.trim().isNotEmpty == true) 'lastName': lastName!.trim(),
+        if (phone?.trim().isNotEmpty == true) 'phone': phone!.trim(),
         'email': email.trim(),
         'password': password,
         'confirm_password': confirmPassword,
@@ -260,7 +425,9 @@ class AuthService {
       );
 
       final authResponse = AuthResponse.fromJson(response.data);
-      _dioClient.setAuthToken(authResponse.token);
+      if (authResponse.token != null) {
+        _dioClient.setAuthToken(authResponse.token!);
+      }
 
       return authResponse;
     } catch (e) {
@@ -311,7 +478,9 @@ class AuthService {
       }
 
       final authResponse = AuthResponse.fromJson(response.data);
-      _dioClient.setAuthToken(authResponse.token);
+      if (authResponse.token != null) {
+        _dioClient.setAuthToken(authResponse.token!);
+      }
 
       return authResponse;
     } catch (e) {
@@ -355,7 +524,9 @@ class AuthService {
       }
 
       final authResponse = AuthResponse.fromJson(response.data);
-      _dioClient.setAuthToken(authResponse.token);
+      if (authResponse.token != null) {
+        _dioClient.setAuthToken(authResponse.token!);
+      }
 
       return authResponse;
     } catch (e) {
@@ -436,7 +607,9 @@ class AuthService {
       );
 
       final authResponse = AuthResponse.fromJson(response.data);
-      _dioClient.setAuthToken(authResponse.token);
+      if (authResponse.token != null) {
+        _dioClient.setAuthToken(authResponse.token!);
+      }
 
       return authResponse;
     } catch (e) {
@@ -454,5 +627,56 @@ class AuthService {
 
   void clearAuthToken() {
     _dioClient.clearAuthToken();
+  }
+
+  // ============================================================
+  // ONBOARDING PROGRESSION
+  // ============================================================
+
+  Future<bool> handlePermissionsAndContacts({
+    required Map<String, bool> permissions,
+    required List<Map<String, dynamic>> emergencyContacts,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('=== Handle Permissions and Contacts ===');
+        print('Permissions: $permissions');
+        print('Contacts Count: ${emergencyContacts.length}');
+      }
+
+      await _dioClient.post(
+        ApiConstants.permissionsContactsEndpoint,
+        data: {
+          'permissions': permissions,
+          'emergency_contacts': emergencyContacts,
+        },
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Handle Permissions and Contacts Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> completeIdentityVerification({
+    required Map<String, dynamic> smileSessionData,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('=== Complete Identity Verification ===');
+        print('Smile Session Data: $smileSessionData');
+      }
+
+      final response = await _dioClient.post(
+        ApiConstants.identityVerificationEndpoint,
+        data: {
+          'smile_session_data': smileSessionData,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (kDebugMode) print('Complete Identity Verification Error: $e');
+      rethrow;
+    }
   }
 }

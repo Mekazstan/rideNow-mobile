@@ -4,8 +4,10 @@ import 'package:ridenowappsss/core/services/token_manager_service.dart';
 import 'package:ridenowappsss/core/storage/local_storage.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/authentication/domain/services/auth_services.dart';
+import 'package:dio/dio.dart';
 import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/core/storage/ride_persistence.dart';
+import 'package:ridenowappsss/core/navigation/route_constant.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
@@ -50,6 +52,41 @@ class AuthProvider extends ChangeNotifier {
   String? get tempConfirmPassword => _tempConfirmPassword;
   bool get isUploadingPhoto => _isUploadingPhoto;
 
+  /// Returns the route name the user should be sent to based on the backend
+  /// `current_step` from `GET /onboardings/status`.
+  /// Returns null when onboarding is fully complete → go to the normal app.
+  Future<String?> getOnboardingRoute() async {
+    try {
+      final status = await _authService.fetchOnboardingStatus();
+      if (status == null) return null;
+
+      final currentStep = status['current_step'] as String?;
+      final userType = _user?.userType?.toLowerCase() ?? 'rider';
+      final isOnboardingAsDriver = status['driver_onboarding_status'] == 'in_progress' || 
+                                   _user?.driverOnboardingStatus == 'in_progress';
+
+      switch (currentStep) {
+        case 'bio_data':
+          return RouteConstants.letsGetToKnowYou;
+        case 'emergency_contacts':
+          return RouteConstants.emergencyContact;
+        case 'identity_verification':
+        case 'smile_id_verify':
+          return RouteConstants.emergencyContact; // SmileID is on this screen
+        case 'vehicle_info':
+          return (userType == 'driver' || isOnboardingAsDriver) ? RouteConstants.letsKnowYouMore : null;
+        case 'driver_documents':
+          return (userType == 'driver' || isOnboardingAsDriver) ? RouteConstants.driverDocumentCollection : null;
+        case 'completed':
+        default:
+          return null; // Onboarding done → go to the app
+      }
+    } catch (e) {
+      if (kDebugMode) print('getOnboardingRoute error: $e');
+      return null;
+    }
+  }
+
   bool get isLoading => _authState == AuthState.loading;
   bool get isAuthenticated => _authState == AuthState.authenticated;
   bool get hasError => _authState == AuthState.error;
@@ -75,41 +112,54 @@ class AuthProvider extends ChangeNotifier {
       _setAuthState(AuthState.loading);
 
       final isLoggedIn = await _storageService.isLoggedIn();
-      final isSessionExpired = await _storageService.isSessionExpired();
+      final isTokenExpired = await _storageService.isTokenExpired();
 
       if (kDebugMode) {
         print('=== Initialize Auth ===');
         print('Is logged in: $isLoggedIn');
-        print('Is session expired: $isSessionExpired');
+        print('Is token expired: $isTokenExpired');
       }
 
-      if (isLoggedIn && !isSessionExpired) {
-        final storedUser = await _storageService.getUserData();
+      if (isLoggedIn && !isTokenExpired) {
         final storedToken = await _storageService.getAuthToken();
         final storedRefreshToken = await _storageService.getRefreshToken();
+        final storedUser = await _storageService.getUserData();
 
-        if (storedUser != null &&
-            storedToken != null &&
-            storedRefreshToken != null) {
-          _user = storedUser;
+        if (storedToken != null && storedRefreshToken != null) {
           _token = storedToken;
           _refreshToken = storedRefreshToken;
-
+          _user = storedUser;
           _authService.setAuthToken(storedToken);
-          _setAuthState(AuthState.authenticated);
 
-          _startSessionMonitoring();
-          fetchProfile();
-          return;
+          if (_user != null) {
+            // Set authenticated state immediately with cached data
+            _setAuthState(AuthState.authenticated);
+            _startSessionMonitoring();
+            
+            // Refresh profile in background
+            fetchProfile().then((success) {
+              if (!success && kDebugMode) {
+                print('Background profile refresh failed');
+              }
+            });
+            return;
+          } else {
+            // No cached user, need to fetch it (original behavior)
+            final profileSucceeded = await fetchProfile();
+            if (profileSucceeded) {
+              _setAuthState(AuthState.authenticated);
+              _startSessionMonitoring();
+              return;
+            }
+          }
         }
       }
 
-      if (isSessionExpired) {
+      if (isTokenExpired) {
         if (kDebugMode) {
-          print('Session expired - clearing auth data and ride state');
+          print('Token expired - initiating logout/cleanup');
         }
-        await _storageService.clearAuthData();
-        await getIt<RidePersistenceService>().clearRideState();
+        await logout();
       }
 
       _setAuthState(AuthState.unauthenticated);
@@ -192,11 +242,13 @@ class AuthProvider extends ChangeNotifier {
         refreshToken: _refreshToken!,
       );
 
-      await _storageService.updateAuthToken(
-        token: authResponse.token,
-        refreshToken: authResponse.refreshToken,
-        tokenExpiresIn: authResponse.tokenExpiresIn ?? 7200,
-      );
+      if (authResponse.token != null && authResponse.refreshToken != null) {
+        await _storageService.updateAuthToken(
+          token: authResponse.token!,
+          refreshToken: authResponse.refreshToken!,
+          tokenExpiresIn: authResponse.tokenExpiresIn ?? 7200,
+        );
+      }
 
       _token = authResponse.token;
       _refreshToken = authResponse.refreshToken;
@@ -299,47 +351,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Future<void> logout() async {
-  //   try {
-  //     if (kDebugMode) {
-  //       print('=== Logout Started ===');
-  //     }
-
-  //     _setAuthState(AuthState.loading);
-
-  //     _tokenManager.stopMonitoring();
-  //     await _authService.logout();
-  //     await _storageService.clearAuthData();
-
-  //     _user = null;
-  //     _token = null;
-  //     _refreshToken = null;
-  //     _nextStep = null;
-  //     _clearErrors();
-  //     clearTempSignUpData();
-
-  //     _setAuthState(AuthState.unauthenticated);
-
-  //     if (kDebugMode) {
-  //       print('=== Logout Completed ===');
-  //     }
-  //   } catch (e) {
-  //     if (kDebugMode) {
-  //       print('Logout error: $e');
-  //     }
-
-  //     _tokenManager.stopMonitoring();
-  //     await _storageService.clearAuthData();
-  //     _user = null;
-  //     _token = null;
-  //     _refreshToken = null;
-  //     _nextStep = null;
-  //     _clearErrors();
-  //     clearTempSignUpData();
-  //     _setAuthState(AuthState.unauthenticated);
-  //   }
-  // }
-
   // ============================================================
   // USER PROFILE
   // ============================================================
@@ -373,6 +384,19 @@ class AuthProvider extends ChangeNotifier {
       _setError(NetworkException('Failed to load profile. Please try again.'));
       return false;
     }
+  }
+
+  void updateUserLocal(User updatedUser) {
+    _user = updatedUser;
+    if (_token != null && _refreshToken != null) {
+      _storageService.saveAuthData(
+        token: _token!,
+        refreshToken: _refreshToken!,
+        user: updatedUser,
+        tokenExpiresIn: 7200,
+      );
+    }
+    notifyListeners();
   }
 
   // ============================================================
@@ -453,22 +477,11 @@ class AuthProvider extends ChangeNotifier {
       _startSessionMonitoring();
 
       return true;
-    } on ValidationException catch (e) {
-      _setValidationError(e.errors);
-      return false;
-    } on ApiException catch (e) {
-      _setError(e);
-      return false;
-    } on NetworkException catch (e) {
-      _setError(e);
-      return false;
     } catch (e) {
       if (kDebugMode) {
         print('Unexpected login error: $e');
       }
-      _setError(
-        NetworkException('An unexpected error occurred. Please try again.'),
-      );
+      _setError(e);
       return false;
     }
   }
@@ -511,22 +524,11 @@ class AuthProvider extends ChangeNotifier {
 
       await _handleAuthSuccess(authResponse);
       return true;
-    } on ValidationException catch (e) {
-      _setValidationError(e.errors);
-      return false;
-    } on ApiException catch (e) {
-      _setError(e);
-      return false;
-    } on NetworkException catch (e) {
-      _setError(e);
-      return false;
     } catch (e) {
       if (kDebugMode) {
         print('Unexpected sign up error: $e');
       }
-      _setError(
-        NetworkException('An unexpected error occurred. Please try again.'),
-      );
+      _setError(e);
       return false;
     }
   }
@@ -618,18 +620,22 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _handleAuthSuccess(AuthResponse authResponse) async {
     // Save auth data first
-    await _storageService.saveAuthData(
-      token: authResponse.token,
-      refreshToken: authResponse.refreshToken,
-      user: authResponse.user,
-      tokenExpiresIn: authResponse.tokenExpiresIn ?? 7200,
-    );
+    if (authResponse.token != null && authResponse.refreshToken != null) {
+      await _storageService.saveAuthData(
+        token: authResponse.token!,
+        refreshToken: authResponse.refreshToken!,
+        user: authResponse.user,
+        tokenExpiresIn: authResponse.tokenExpiresIn ?? 7200,
+      );
+    }
 
     // Clear any stale ride state on new login
     await getIt<RidePersistenceService>().clearRideState();
 
     // Set token for API calls
-    _authService.setAuthToken(authResponse.token);
+    if (authResponse.token != null) {
+      _authService.setAuthToken(authResponse.token!);
+    }
 
     // Update state
     _user = authResponse.user;
@@ -649,18 +655,20 @@ class AuthProvider extends ChangeNotifier {
     _setAuthState(AuthState.authenticated);
 
     // Fetch fresh profile to ensure we have latest data
-    try {
-      await fetchProfile();
-      if (kDebugMode) {
-        print('âœ… Profile refreshed after auth success');
+    if (authResponse.token != null) {
+      try {
+        await fetchProfile();
+        if (kDebugMode) {
+          print('✅ Profile refreshed after auth success');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Fetch Profile Error: $e');
+        }
       }
-    } catch (e) {
-      if (kDebugMode) {
-        print('âš ï¸ Failed to refresh profile after auth: $e');
-      }
-      // Don't fail the login if profile refresh fails
-      // User data from authResponse is already saved
     }
+    // Don't fail the login if profile refresh fails
+    // User data from authResponse is already saved
   }
 
   // Future<void> _handleAuthSuccess(AuthResponse authResponse) async {
@@ -773,6 +781,7 @@ class AuthProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
     required String phone,
+    String? dateOfBirth,
   }) async {
     try {
       _setAuthState(AuthState.loading);
@@ -782,6 +791,7 @@ class AuthProvider extends ChangeNotifier {
         firstName: firstName,
         lastName: lastName,
         phone: phone,
+        dateOfBirth: dateOfBirth,
       );
 
       _user = updatedUser;
@@ -799,6 +809,157 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _setError(
         NetworkException('Failed to update profile. Please try again.'),
+      );
+      return false;
+    }
+  }
+
+  // ============================================================
+  // ROLE MANAGEMENT
+  // ============================================================
+
+  Future<AuthResponse?> switchRole(String targetRole) async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+      notifyListeners();
+
+      final response = await _authService.switchRole(targetRole);
+
+      if (response.success) {
+        // Success switch (already active role)
+        _user = response.user;
+        await _storageService.saveUserData(_user!);
+        _setAuthState(AuthState.authenticated);
+      } else if (response.user.id.isNotEmpty) {
+        // This is for the case where success: false but we got a user object
+        // (legacy or specific handling)
+      }
+
+      notifyListeners();
+      return response;
+    } on ApiException catch (e) {
+      _setError(e);
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _setError(NetworkException('Failed to switch role'));
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> startDriverOnboarding() async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+      notifyListeners();
+
+      final response = await _authService.startDriverOnboarding();
+
+      if (response['success'] == true) {
+        // Refresh profile to get updated status
+        await fetchProfile();
+        _setAuthState(AuthState.authenticated);
+        return true;
+      }
+
+      _setAuthState(AuthState.authenticated);
+      return false;
+    } catch (e) {
+      _setError(NetworkException('Failed to start onboarding'));
+      _setAuthState(AuthState.authenticated);
+      return false;
+    }
+  }
+
+  Future<bool> submitBioData({
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required String dateOfBirth,
+  }) async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+
+      final fullName = '$firstName $lastName'.trim();
+
+      final response = await _authService.submitBioData(
+        fullName: fullName,
+        dateOfBirth: dateOfBirth,
+        phone: phone,
+      );
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data != null && data['next_step'] != null) {
+          _nextStep = data['next_step'];
+        }
+        await fetchProfile();
+        _setAuthState(AuthState.authenticated);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _setError(e);
+      return false;
+    } on NetworkException catch (e) {
+      _setError(e);
+      return false;
+    } catch (e) {
+      _setError(
+        NetworkException('Failed to submit bio data. Please try again.'),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> submitVehicleSetup({
+    required String licensePlate,
+    required String vehicleType,
+    String? make,
+    String? model,
+    int? year,
+    String? color,
+    List<File>? carImageFiles,
+    File? identificationFile,
+    String? identificationType,
+    String? identificationNumber,
+  }) async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+
+      final success = await _authService.submitVehicleSetup(
+        licensePlate: licensePlate,
+        vehicleType: vehicleType,
+        make: make,
+        model: model,
+        year: year,
+        color: color,
+        carImageFiles: carImageFiles,
+        identificationFile: identificationFile,
+        identificationType: identificationType,
+        identificationNumber: identificationNumber,
+      );
+
+      if (success) {
+        _setAuthState(AuthState.authenticated);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _setError(e);
+      return false;
+    } on NetworkException catch (e) {
+      _setError(e);
+      return false;
+    } catch (e) {
+      _setError(
+        NetworkException('Failed to setup vehicle. Please try again.'),
       );
       return false;
     }
@@ -837,19 +998,12 @@ class AuthProvider extends ChangeNotifier {
 
       await _handleAuthSuccess(authResponse);
 
-      try {
-        await _authService.sendVerification(email: _tempEmail!);
-      } catch (e) {
-        if (kDebugMode) {
-          print('Failed to send verification email: $e');
-        }
-      }
-
       return true;
     } catch (e) {
-      _setError(
-        NetworkException('An unexpected error occurred. Please try again.'),
-      );
+      if (kDebugMode) {
+        print('Signup Error: $e');
+      }
+      _setError(e);
       return false;
     }
   }
@@ -863,9 +1017,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _setError(Exception error) {
+  void _setError(dynamic error) {
+    Exception actualError = error is Exception ? error : Exception(error.toString());
+    
+    if (error is DioException && error.error is Exception) {
+      actualError = error.error as Exception;
+    }
+    
+    if (actualError is ValidationException) {
+      _setValidationError(actualError.errors);
+      return;
+    }
+
     _authState = AuthState.error;
-    _lastError = error;
+    _lastError = actualError;
     _validationErrors = null;
     notifyListeners();
   }
@@ -940,6 +1105,37 @@ class AuthProvider extends ChangeNotifier {
     ).hasMatch(email);
   }
 
+  Future<bool> batchUploadDriverDocuments({
+    required List<Map<String, dynamic>> documents,
+  }) async {
+    try {
+      _setAuthState(AuthState.loading);
+      _clearErrors();
+
+      final success = await _authService.batchUploadDriverDocuments(
+        documents: documents,
+      );
+
+      if (success) {
+        _setAuthState(AuthState.authenticated);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _setError(e);
+      return false;
+    } on NetworkException catch (e) {
+      _setError(e);
+      return false;
+    } catch (e) {
+      _setError(
+        NetworkException('Failed to upload documents. Please try again.'),
+      );
+      return false;
+    }
+  }
+
   // ============================================================
   // UTILITY METHODS
   // ============================================================
@@ -953,5 +1149,63 @@ class AuthProvider extends ChangeNotifier {
   void dispose() {
     _tokenManager.dispose();
     super.dispose();
+  }
+
+  Future<bool> submitPermissionsAndContacts({
+    required Map<String, bool> permissions,
+    required List<Map<String, dynamic>> emergencyContacts,
+  }) async {
+    try {
+      _authState = AuthState.loading;
+      _clearErrors();
+      notifyListeners();
+
+      await _authService.handlePermissionsAndContacts(
+        permissions: permissions,
+        emergencyContacts: emergencyContacts,
+      );
+
+      _authState = AuthState.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError(e);
+      return false;
+    }
+  }
+
+  Future<bool> completeIdentityVerification({
+    required Map<String, dynamic> smileSessionData,
+  }) async {
+    try {
+      _authState = AuthState.loading;
+      _clearErrors();
+      notifyListeners();
+
+      final response = await _authService.completeIdentityVerification(
+        smileSessionData: smileSessionData,
+      );
+
+      if (response['success'] == true) {
+        // Update user data if present
+        if (response['user'] != null) {
+          final userData = response['user'];
+          // Note: We might need to map this to our User model properly
+          // For now, let's just refresh the profile to be safe
+          await fetchProfile();
+        }
+
+        if (response['next_step'] != null) {
+          _nextStep = response['next_step'];
+        }
+      }
+
+      _authState = AuthState.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError(e);
+      return false;
+    }
   }
 }

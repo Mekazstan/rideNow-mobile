@@ -116,10 +116,18 @@ class DioClient {
         List<String>? errors;
         String? code;
         if (data.containsKey('message')) {
-          message = _getUserFriendlyMessage(
-            data['message'] as String,
-            statusCode,
-          );
+          final msgData = data['message'];
+          if (msgData is List && msgData.isNotEmpty) {
+            message = _getUserFriendlyMessage(
+              msgData.first.toString(),
+              statusCode,
+            );
+          } else {
+            message = _getUserFriendlyMessage(
+              msgData.toString(),
+              statusCode,
+            );
+          }
         } else if (data.containsKey('error')) {
           message = _getUserFriendlyMessage(
             data['error'] as String,

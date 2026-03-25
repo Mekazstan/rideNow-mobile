@@ -36,7 +36,6 @@ class _VerifyAccountViewState extends State<VerifyAccountView> {
     _otpControllers = List.generate(4, (index) => TextEditingController());
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ToastService.init(context);
       _initializeEmail();
     });
   }
@@ -219,20 +218,20 @@ class _VerifyAccountViewState extends State<VerifyAccountView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: EdgeInsets.all(8.w),
-                      child: Icon(
-                        Icons.close,
-                        color: appColors.gray300,
-                        size: 24.sp,
-                      ),
-                    ),
-                  ),
-                ),
+                // Align(
+                //   alignment: Alignment.topRight,
+                //   child: GestureDetector(
+                //     onTap: () => Navigator.of(context).pop(),
+                //     child: Container(
+                //       padding: EdgeInsets.all(8.w),
+                //       child: Icon(
+                //         Icons.close,
+                //         color: appColors.gray300,
+                //         size: 24.sp,
+                //       ),
+                //     ),
+                //   ),
+                // ),
                 SizedBox(height: 16.h),
                 Container(
                   width: 32.w,
@@ -419,10 +418,10 @@ class _VerifyAccountViewState extends State<VerifyAccountView> {
                     children: [
                       SizedBox(height: 33.h),
                       const StepIndicator(
-                        currentStep: 3,
+                        currentStep: 1,
                         totalSteps: 4,
-                        stepLabels: ['', '', 'Verify your account'],
-                        showStepLabels: [false, false, true, false],
+                        stepLabels: ['Verify your account', '', '', ''],
+                        showStepLabels: [true, false, false, false],
                       ),
                       SizedBox(height: 14.h),
                       Text(

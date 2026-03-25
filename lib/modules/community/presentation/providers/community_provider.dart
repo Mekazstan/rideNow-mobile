@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/community/data/models/community_models.dart';
 import 'package:ridenowappsss/modules/community/domain/services/community_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum CommunityState { initial, loading, loaded, error }
 
 class CommunityProvider extends ChangeNotifier {
   final CommunityService _communityService = CommunityService();
+  static const String _sharedRidesCacheKey = 'shared_rides_cache';
 
   CommunityState _state = CommunityState.initial;
   List<SharedRide> _sharedRides = [];
@@ -25,6 +28,39 @@ class CommunityProvider extends ChangeNotifier {
   bool get isStoppingShare => _isStoppingShare;
   bool get isLoading => _state == CommunityState.loading;
 
+  CommunityProvider() {
+    _loadCachedSharedRides();
+  }
+
+  Future<void> _loadCachedSharedRides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cachedData = prefs.getString(_sharedRidesCacheKey);
+      if (cachedData != null) {
+        final List<dynamic> decoded = jsonDecode(cachedData);
+        _sharedRides = decoded
+            .map((json) => SharedRide.fromJson(json as Map<String, dynamic>))
+            .toList();
+        _state = CommunityState.loaded;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading cached shared rides: $e');
+    }
+  }
+
+  Future<void> _cacheSharedRides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String encoded = jsonEncode(
+        _sharedRides.map((ride) => ride.toJson()).toList(),
+      );
+      await prefs.setString(_sharedRidesCacheKey, encoded);
+    } catch (e) {
+      debugPrint('Error caching shared rides: $e');
+    }
+  }
+
   String? get errorMessage {
     if (_lastError == null) return null;
     if (_lastError is ApiException) return (_lastError as ApiException).message;
@@ -36,12 +72,16 @@ class CommunityProvider extends ChangeNotifier {
 
   Future<bool> fetchSharedRides() async {
     try {
-      _state = CommunityState.loading;
+      if (_sharedRides.isEmpty) {
+        _state = CommunityState.loading;
+        notifyListeners();
+      }
+      
       _lastError = null;
-      notifyListeners();
-
       final response = await _communityService.getSharedRides();
       _sharedRides = response.sharedRides;
+      await _cacheSharedRides();
+      
       _state = CommunityState.loaded;
       notifyListeners();
       return true;
@@ -97,6 +137,8 @@ class CommunityProvider extends ChangeNotifier {
       await _communityService.stopSharingRide(rideId: rideId);
 
       _sharedRides.removeWhere((ride) => ride.rideId == rideId);
+      await _cacheSharedRides();
+      
       _isStoppingShare = false;
       notifyListeners();
       return true;
@@ -127,6 +169,8 @@ class CommunityProvider extends ChangeNotifier {
       await _communityService.stopWatchingRide(rideId: rideId);
 
       _sharedRides.removeWhere((ride) => ride.rideId == rideId);
+      await _cacheSharedRides();
+      
       _isStoppingShare = false;
       notifyListeners();
       return true;

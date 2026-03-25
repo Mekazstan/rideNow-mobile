@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ridenowappsss/core/navigation/app_router.dart';
 
 class ToastService {
   static FToast? _fToast;
@@ -388,7 +389,6 @@ class ToastService {
     }
   }
 
-  // Custom toast widget (simple version with just message)
   static void _showCustomToast({
     required String message,
     required Color backgroundColor,
@@ -396,17 +396,27 @@ class ToastService {
     required Color iconColor,
     required Duration duration,
   }) {
+    // Ensure FToast is initialized — screens must call ToastService.init(context) before async calls
     if (_fToast == null) return;
 
     Widget toast = Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      margin: EdgeInsets.symmetric(horizontal: 24.w),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        color: Colors.white.withOpacity(0.95),
+        border: Border.all(
+          color: backgroundColor.withOpacity(0.2),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: backgroundColor.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -416,22 +426,33 @@ class ToastService {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(8.w),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: backgroundColor.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor, size: 20.sp),
+            child: Icon(
+              icon,
+              color: backgroundColor,
+              size: 20.sp,
+            ),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 14.w),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: const Color(0xFF1F2937),
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

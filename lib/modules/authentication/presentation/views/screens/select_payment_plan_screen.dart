@@ -13,7 +13,7 @@ import 'package:ridenowappsss/shared/widgets/ridenow_scaffold.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 import 'package:ridenowappsss/shared/widgets/step_indicator.dart';
 import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
-import 'package:app_links/app_links.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'dart:async';
 
 class SelectPaymentPlanScreen extends StatefulWidget {
@@ -26,36 +26,16 @@ class SelectPaymentPlanScreen extends StatefulWidget {
 
 class _SelectPaymentPlanScreenState extends State<SelectPaymentPlanScreen> {
   String? selectedPlanId;
-  StreamSubscription<Uri>? _deepLinkSub;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() => _loadPlans());
-    _setupDeepLinkListener();
   }
 
-  void _setupDeepLinkListener() {
-    final appLinks = AppLinks();
-    _deepLinkSub = appLinks.uriLinkStream.listen((uri) {
-      if (!mounted) return;
-      if (uri.scheme == 'ridenow' && uri.host == 'payment-success') {
-        // Payment was successful — navigate to account ready
-        context.goNamed(RouteConstants.accountReady);
-      } else if (uri.scheme == 'ridenow' && uri.host == 'payment-failed') {
-        final error = uri.queryParameters['error'] ?? 'Payment could not be completed.';
-        AppErrorDialog.show(
-          context,
-          title: 'Payment Failed',
-          message: error,
-        );
-      }
-    });
-  }
 
   @override
   void dispose() {
-    _deepLinkSub?.cancel();
     super.dispose();
   }
 
@@ -331,77 +311,13 @@ class _SelectPaymentPlanScreenState extends State<SelectPaymentPlanScreen> {
 
     if (confirmed != true) return;
 
-    String? paymentMethod;
-    if (plan.price > 0) {
-      paymentMethod = await showModalBottomSheet<String>(
-        context: context,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        builder: (context) {
-          return Container(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Select Payment Method',
-                  style: appFonts.heading1Bold.copyWith(fontSize: 18.sp),
-                ),
-                SizedBox(height: 20.h),
-                ListTile(
-                  leading: const Icon(Icons.wallet_outlined),
-                  title: const Text('Wallet Balance'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.pop(context, 'wallet'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.credit_card_outlined),
-                  title: const Text('Credit/Debit Card'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.pop(context, 'card'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.account_balance_outlined),
-                  title: const Text('Bank Transfer'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.pop(context, 'bank_transfer'),
-                ),
-                SizedBox(height: 20.h),
-              ],
-            ),
-          );
-        },
-      );
-
-      if (paymentMethod == null) return;
-    }
-
-    final success = await provider.subscribeToPlan(
-      planType: plan.planType,
-      paymentMethod: paymentMethod,
-    );
+    final success = await provider.subscribeToPlan(plan.id);
 
     if (!mounted) return;
 
     if (success) {
-      if (provider.requiresAction) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Please complete the payment in the opened page.'),
-            backgroundColor: appColors.blue500,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Successfully subscribed to plan!'),
-            backgroundColor: appColors.green400,
-          ),
-        );
-        context.goNamed(RouteConstants.accountReady);
-      }
+      ToastService.showSuccess('Successfully subscribed to plan!');
+      context.goNamed(RouteConstants.accountReady);
     } else {
       String errorMessage = provider.errorMessage ?? 'Failed to subscribe to plan';
       AppErrorDialog.show(

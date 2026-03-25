@@ -1,12 +1,14 @@
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:ridenowappsss/core/navigation/bottom_navigation.dart';
+import 'package:ridenowappsss/core/services/location_service.dart';
 import 'package:ridenowappsss/core/storage/local_storage.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/subscription_plan_provider.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/support_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/emergency_contact_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/user_provider.dart';
+import 'package:ridenowappsss/modules/community/presentation/providers/community_provider.dart';
 import 'package:ridenowappsss/modules/ride/data/data_sources/driver_remote_data_source.dart';
 import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
@@ -38,6 +40,7 @@ final List<SingleChildWidget> appProviders = [
   ),
   ChangeNotifierProvider(create: (_) => BottomNavVisibilityProvider()),
   ChangeNotifierProvider(create: (_) => EmergencyContactProvider()),
+  ChangeNotifierProvider(create: (_) => CommunityProvider()),
   ChangeNotifierProvider(
     create:
         (_) => DriverProvider(
@@ -46,6 +49,7 @@ final List<SingleChildWidget> appProviders = [
               storageService: SecureStorageService(),
             ),
           ),
+          locationService: LocationServiceImpl(),
         ),
   ),
 ];

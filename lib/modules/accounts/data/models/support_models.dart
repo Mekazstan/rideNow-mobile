@@ -140,3 +140,69 @@ class CreateTicketResponse {
       _$CreateTicketResponseFromJson(json);
   Map<String, dynamic> toJson() => _$CreateTicketResponseToJson(this);
 }
+@JsonSerializable()
+class UserTicket {
+  final String id;
+  final String ticketNumber;
+  final String subject;
+  final String category;
+  final String status;
+  final String priority;
+  final String createdAt;
+  final String updatedAt;
+  final String? assignedAgent;
+  final String lastMessage;
+
+  UserTicket({
+    required this.id,
+    required this.ticketNumber,
+    required this.subject,
+    required this.category,
+    required this.status,
+    required this.priority,
+    required this.createdAt,
+    required this.updatedAt,
+    this.assignedAgent,
+    required this.lastMessage,
+  });
+
+  factory UserTicket.fromJson(Map<String, dynamic> json) =>
+      _$UserTicketFromJson(json);
+  Map<String, dynamic> toJson() => _$UserTicketToJson(this);
+}
+
+@JsonSerializable()
+class TicketsData {
+  final List<UserTicket> tickets;
+  final int total;
+  final int open;
+  final int resolved;
+
+  TicketsData({
+    required this.tickets,
+    required this.total,
+    required this.open,
+    required this.resolved,
+  });
+
+  factory TicketsData.fromJson(Map<String, dynamic> json) =>
+      _$TicketsDataFromJson(json);
+  Map<String, dynamic> toJson() => _$TicketsDataToJson(this);
+}
+
+@JsonSerializable()
+class TicketsResponse {
+  final bool success;
+  final String message;
+  final TicketsData data;
+
+  TicketsResponse({
+    required this.success,
+    required this.message,
+    required this.data,
+  });
+
+  factory TicketsResponse.fromJson(Map<String, dynamic> json) =>
+      _$TicketsResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$TicketsResponseToJson(this);
+}

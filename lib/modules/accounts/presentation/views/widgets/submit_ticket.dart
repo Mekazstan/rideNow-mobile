@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
@@ -78,67 +78,74 @@ class _SubmitTicketState extends State<SubmitTicket> {
 
     return Form(
       key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 27.h),
-          Text(
-            'RideNow is a safety first ride-hailing application that helps users stay safe on the road. It\'s fun, engaging and decisive.',
-            style: appFonts.textSmMedium.copyWith(
-              color: appColors.textPrimary,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w400,
-            ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
           ),
-          SizedBox(height: 27.h),
-          RidenowTextfield(
-            fieldName: 'Name',
-            hintText: 'First name',
-            controller: _nameController,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Name is required';
-              }
-              return null;
-            },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 27.h),
+              Text(
+                'RideNow is a safety first ride-hailing application that helps users stay safe on the road. It\'s fun, engaging and decisive.',
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              SizedBox(height: 27.h),
+              RidenowTextfield(
+                fieldName: 'Name',
+                hintText: 'First name',
+                controller: _nameController,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Name is required';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 17.h),
+              RidenowTextfield(
+                fieldName: 'What would you like to report?',
+                hintText: 'I caught a suspicious account...',
+                controller: _descriptionController,
+                maxLines: 6,
+                minLines: 6,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Description is required';
+                  }
+                  if (value.trim().length < 10) {
+                    return 'Description must be at least 10 characters';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 17.h),
+              Consumer<SupportProvider>(
+                builder: (context, supportProvider, child) {
+                  return RideNowButton(
+                    colorSet: RideNowButtonColorSet.primary,
+                    width: 349.w,
+                    height: 49.h,
+                    title:
+                        supportProvider.isLoadingTicket
+                            ? 'Submitting...'
+                            : 'Submit',
+                    onTap:
+                        supportProvider.isLoadingTicket
+                            ? () {}
+                            : () => _handleSubmit(),
+                    isLoading: supportProvider.isLoadingTicket,
+                  );
+                },
+              ),
+            ],
           ),
-          SizedBox(height: 17.h),
-          RidenowTextfield(
-            fieldName: 'What would you like to report?',
-            hintText: 'I caught a suspicious account...',
-            controller: _descriptionController,
-            maxLines: 6,
-            minLines: 6,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Description is required';
-              }
-              if (value.trim().length < 10) {
-                return 'Description must be at least 10 characters';
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 17.h),
-          Consumer<SupportProvider>(
-            builder: (context, supportProvider, child) {
-              return RideNowButton(
-                colorSet: RideNowButtonColorSet.primary,
-                width: 349.w,
-                height: 49.h,
-                title:
-                    supportProvider.isLoadingTicket
-                        ? 'Submitting...'
-                        : 'Submit',
-                onTap:
-                    supportProvider.isLoadingTicket
-                        ? () {}
-                        : () => _handleSubmit(),
-                isLoading: supportProvider.isLoadingTicket,
-              );
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

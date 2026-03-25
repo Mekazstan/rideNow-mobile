@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,7 +9,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/providers/auth
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
-import 'package:ridenowappsss/shared/widgets/ride_now_side_menue_driver.dart';
+import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -81,7 +81,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final userType = authProvider.user?.userType.toLowerCase() ?? 'rider';
 
         return userType == 'driver'
-            ? const RideNowSideMenueDriver()
+            ? const RideNowSideMenuDriver()
             : const RideNowSideMenu();
       },
     );

@@ -4,6 +4,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/faq_widget.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/submit_ticket.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/my_tickets_widget.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/ride_now_account_appbar.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/ride_now_tab_bar.dart';
 
@@ -36,13 +37,15 @@ class _HelpCenterState extends State<HelpCenter> {
               SizedBox(height: 20.h),
               Expanded(
                 child: RideNowTabBar(
-                  firstTabText: 'FAQs',
-                  secondTabText: 'Submit Ticket',
+                  tabs: const ['FAQs', 'Submit Ticket', 'My Tickets'],
+                  tabContents: const [
+                    FaqWidget(),
+                    SubmitTicket(),
+                    MyTicketsWidget(),
+                  ],
                   appFonts: appFonts,
                   appColors: appColors,
                   initialTabIndex: 0,
-                  firstTabContent: const FaqWidget(),
-                  secondTabContent: const SubmitTicket(),
                 ),
               ),
             ],

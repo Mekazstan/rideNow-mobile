@@ -33,6 +33,8 @@ WalletTransaction _$WalletTransactionFromJson(Map<String, dynamic> json) =>
       balanceBefore: json['balance_before'],
       balanceAfter: (json['balance_after'] as num).toDouble(),
       createdAt: json['created_at'] as String,
+      paymentUrl: json['payment_url'] as String?,
+      paymentMetadata: json['payment_metadata'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$WalletTransactionToJson(WalletTransaction instance) =>
@@ -48,6 +50,8 @@ Map<String, dynamic> _$WalletTransactionToJson(WalletTransaction instance) =>
       'balance_before': instance.balanceBefore,
       'balance_after': instance.balanceAfter,
       'created_at': instance.createdAt,
+      'payment_url': instance.paymentUrl,
+      'payment_metadata': instance.paymentMetadata,
     };
 
 Pagination _$PaginationFromJson(Map<String, dynamic> json) => Pagination(

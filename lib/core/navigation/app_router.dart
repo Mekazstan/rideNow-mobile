@@ -7,14 +7,16 @@ import 'package:ridenowappsss/modules/accounts/presentation/views/screens/call_a
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/call_police.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/community_sharing.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/help_center.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/views/screens/privacy_policy_screen.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/safety_and_secuirity.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/views/screens/terms_and_conditions_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/emergency_contact.dart';
 
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/forgot_password_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/lets_get_to_know_you_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/login_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/onboarding_screen.dart';
-import 'package:ridenowappsss/modules/authentication/presentation/views/screens/select_payment_plan_scren.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/select_payment_plan_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/sign_up_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/splash_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/user_type_selection.dart';
@@ -468,6 +470,54 @@ class AppRouter {
         },
       ),
 
+       GoRoute(
+        path: '/privacyPolicy',
+        name: RouteConstants.privacyPolicy,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const PrivacyPolicyScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/termsAndConditions',
+        name: RouteConstants.termsAndConditions,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const TermsAndConditionsScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
       // ============================================================
       // WALLET & ANALYTICS
       // ============================================================
@@ -592,8 +642,8 @@ class AppRouter {
               return CustomTransitionPage(
                 key: state.pageKey,
                 child: ConditionalWidget(
-                  riderWidget: const ShareRideScreen(),
-                  driverWidget: const ShareRideScreen(),
+                  riderWidget: const CommunityScreen(),
+                  driverWidget: const CommunityScreen(),
                   vendorWidget: const CommunitySharing(),
                 ),
                 transitionsBuilder: (

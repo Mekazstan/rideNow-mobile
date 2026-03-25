@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/services/user_service.dart';
 import 'package:ridenowappsss/core/storage/local_storage.dart';
@@ -64,16 +66,18 @@ class SplashScreenState extends State<SplashScreen>
   Future<void> _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
-    final isFirstTimeUser = await FirstTimeUserService.isFirstTimeUser();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.initializeAuth();
+
     if (!mounted) return;
-    if (isFirstTimeUser) {
-      context.goNamed(RouteConstants.onboarding);
+
+    if (authProvider.isAuthenticated) {
+      context.goNamed(RouteConstants.ride);
     } else {
-      final secureStorage = SecureStorageService();
-      final isLoggedIn = await secureStorage.isLoggedIn();
+      final isFirstTimeUser = await FirstTimeUserService.isFirstTimeUser();
       if (!mounted) return;
-      if (isLoggedIn) {
-        context.goNamed(RouteConstants.ride);
+      if (isFirstTimeUser) {
+        context.goNamed(RouteConstants.onboarding);
       } else {
         context.goNamed(RouteConstants.userTypeSelection);
       }

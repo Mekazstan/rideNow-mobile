@@ -16,6 +16,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_on_way_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_arrived_sheet.dart';
+import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 
 class RideScreen extends StatefulWidget {
   const RideScreen({super.key});
@@ -56,10 +57,28 @@ class _RideScreenState extends State<RideScreen> {
   }
 
   void _initializeViewModel() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final provider = context.read<RideProvider>();
-      provider.initialize();
-      provider.addListener(_onRideStageChanged);
+
+      // Check permissions and show prompt if needed
+      final hasPermission = await provider.checkLocationPermissions();
+      if (!hasPermission && mounted) {
+        LocationPermissionDialog.show(
+          context,
+          onEnable: () async {
+            await provider.initialize();
+          },
+        );
+      } else {
+        await provider.initialize();
+      }
+
+      if (mounted) {
+        provider.addListener(_onRideStageChanged);
+        // Initial check in case it loaded extremely fast
+        _onRideStageChanged();
+      }
     });
   }
 
@@ -70,9 +89,10 @@ class _RideScreenState extends State<RideScreen> {
 
     if (!_pickupFocusNode.hasFocus &&
         provider.pickupLocation != null &&
-        provider.pickupLocation!.address != null &&
-        _pickupController.text != provider.pickupLocation!.address) {
-      _pickupController.text = provider.pickupLocation!.address!;
+        provider.pickupLocation!.address != null) {
+      if (_pickupController.text != provider.pickupLocation!.address) {
+        _pickupController.text = provider.pickupLocation!.address!;
+      }
     }
 
     debugPrint('🔄 Ride stage changed to: ${provider.rideStage}');
@@ -121,11 +141,15 @@ class _RideScreenState extends State<RideScreen> {
   }
 
   void _onPickupTextChanged() {
-    _viewModel.fetchPickupSuggestions(_pickupController.text);
+    if (_pickupFocusNode.hasFocus) {
+      _viewModel.fetchPickupSuggestions(_pickupController.text);
+    }
   }
 
   void _onDestinationTextChanged() {
-    _viewModel.fetchDestinationSuggestions(_destinationController.text);
+    if (_destinationFocusNode.hasFocus) {
+      _viewModel.fetchDestinationSuggestions(_destinationController.text);
+    }
   }
 
   void _onPickupFocusChanged() {

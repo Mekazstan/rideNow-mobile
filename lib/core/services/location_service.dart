@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -47,7 +47,7 @@ class LocationServiceImpl implements LocationService {
       // 4. Get fresh location with timeout
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+        timeLimit: const Duration(seconds: 15),
       );
 
       final location = LocationModel(

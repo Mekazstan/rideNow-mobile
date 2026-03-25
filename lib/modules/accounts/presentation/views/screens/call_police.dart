@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,18 +23,37 @@ class CallPolice extends StatefulWidget {
 
 class _CallPoliceState extends State<CallPolice> {
   final TextEditingController _searchController = TextEditingController();
-  bool _hasSearched = false;
+  List<PoliceStation> _filteredStations = [];
+  bool _hasLoadedInitial = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPoliceStations();
+    _loadPoliceStations(location: 'Abuja');
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    final provider = context.read<SupportProvider>();
+    
+    setState(() {
+      if (query.isEmpty) {
+        _filteredStations = provider.policeStations;
+      } else {
+        _filteredStations = provider.policeStations.where((station) {
+          return station.name.toLowerCase().contains(query) || 
+                 station.address.toLowerCase().contains(query);
+        }).toList();
+      }
+    });
   }
 
   /// Fetches police stations from the server, optionally filtered by location
@@ -42,11 +61,14 @@ class _CallPoliceState extends State<CallPolice> {
     final supportProvider = context.read<SupportProvider>();
     await supportProvider.fetchPoliceStations(location: location);
     if (mounted) {
-      setState(() => _hasSearched = true);
+      setState(() {
+        _filteredStations = supportProvider.policeStations;
+        _hasLoadedInitial = true;
+      });
     }
   }
 
-  /// Handles search submission and triggers police station lookup
+  /// Handles search submission (optional now with real-time filtering)
   Future<void> _onSearch() async {
     final location = _searchController.text.trim();
     if (location.isEmpty) return;
@@ -90,7 +112,7 @@ class _CallPoliceState extends State<CallPolice> {
               RideNowRichtextWidget(
                 firstText: 'Need help? ',
                 secondText:
-                    'Enter a location and get the closest stations near you.',
+                    'Search for a station by name or location in Abuja.',
                 fontSize: 16.sp,
                 textAlign: TextAlign.start,
                 firstTextColor: appColors.textPrimary,
@@ -100,13 +122,13 @@ class _CallPoliceState extends State<CallPolice> {
                 appFonts: appFonts,
                 appColors: appColors,
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 12.h),
               RideNowSearchBar(
-                hintText: 'Enter location',
+                hintText: 'Search police station...',
                 controller: _searchController,
                 onSubmitted: (_) => _onSearch(),
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.search, color: appColors.textSecondary),
+                  icon: Icon(Icons.search, size: 20.sp, color: appColors.textSecondary),
                   onPressed: _onSearch,
                 ),
               ),
@@ -126,31 +148,33 @@ class _CallPoliceState extends State<CallPolice> {
   ) {
     return Consumer<SupportProvider>(
       builder: (context, provider, child) {
-        if (provider.isLoadingPolice) {
+        if (provider.isLoadingPolice && !_hasLoadedInitial) {
           return _buildShimmerLoading();
         }
 
-        if (provider.policeState == SupportState.error) {
+        if (provider.policeState == SupportState.error && _filteredStations.isEmpty) {
           return _buildErrorState(appColors, appFonts, provider);
         }
 
-        if (!_hasSearched) {
+        if (!_hasLoadedInitial) {
           return _buildEmptyState(
             appColors,
             appFonts,
-            'Enter a location to find nearby police stations',
+            'Loading police stations...',
           );
         }
 
-        if (provider.policeStations.isEmpty) {
+        if (_filteredStations.isEmpty) {
           return _buildEmptyState(
             appColors,
             appFonts,
-            'No police stations found for this location',
+            _searchController.text.isEmpty 
+              ? 'No police stations found'
+              : 'No stations match "${_searchController.text}"',
           );
         }
 
-        return _buildStationsList(appColors, appFonts, provider);
+        return _buildStationsList(appColors, appFonts);
       },
     );
   }
@@ -262,17 +286,16 @@ class _CallPoliceState extends State<CallPolice> {
     );
   }
 
-  /// Builds scrollable list of police stations
+  /// Builds scrollable list of filtered police stations
   Widget _buildStationsList(
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
-    SupportProvider provider,
   ) {
     return ListView.separated(
-      itemCount: provider.policeStations.length,
+      itemCount: _filteredStations.length,
       separatorBuilder: (_, __) => SizedBox(height: 16.h),
       itemBuilder: (context, index) {
-        final station = provider.policeStations[index];
+        final station = _filteredStations[index];
         return _buildStationCard(appColors, appFonts, station);
       },
     );

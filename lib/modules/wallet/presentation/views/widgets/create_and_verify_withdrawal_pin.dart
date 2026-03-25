@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
@@ -7,6 +7,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provi
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/wallet_models.dart';
+import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/finalize_withdrawal_bottom_sheet.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_bottomsheet.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 
@@ -106,6 +107,7 @@ class _CreateWithdrawalPINBottomSheetState
         height: 300.h,
         backgroundColor: Colors.white,
         borderRadius: 16.r,
+        hideBottomNav: false,
         child: VerifyWithdrawalPINBottomSheet(
           bankAccount: widget.bankAccount,
           amount: widget.amount,
@@ -219,13 +221,29 @@ class _VerifyWithdrawalPINBottomSheetState
 
       if (!mounted) return;
 
-      SnackBarHelper.showSuccess(
-        context,
-        response?['message'] ??
-            'Withdrawal of ${widget.amount.formatAmountWithCurrency()} initiated successfully',
-      );
+      if (response?['requiresOtp'] == true) {
+        Navigator.pop(context); // Close PIN sheet
 
-      Navigator.pop(context);
+        RideNowBottomSheet.show(
+          context: context,
+          height: 380.h,
+          backgroundColor: Colors.white,
+          borderRadius: 16.r,
+          hideBottomNav: false,
+          child: FinalizeWithdrawalBottomSheet(
+            transferCode: response?['transferCode'] ?? '',
+            transactionId: response?['transaction_id'] ?? '',
+          ),
+        );
+      } else {
+        SnackBarHelper.showSuccess(
+          context,
+          response?['message'] ??
+              'Withdrawal of ${widget.amount.formatAmountWithCurrency()} initiated successfully',
+        );
+
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
 

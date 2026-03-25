@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -147,6 +147,7 @@ class _ChooseBankAccountState extends State<ChooseBankAccount> {
       height: 450.h,
       backgroundColor: Colors.white,
       borderRadius: 16.r,
+      hideBottomNav: false,
       child: WithdrawBottomSheetContent(selectedBankAccount: bankAccount),
     );
   }
@@ -158,6 +159,7 @@ class _ChooseBankAccountState extends State<ChooseBankAccount> {
       height: 389.h,
       backgroundColor: Colors.white,
       borderRadius: 16.r,
+      hideBottomNav: false,
       child: const AddANewBankCard(),
     );
   }
@@ -224,6 +226,8 @@ class _BankAccountItem extends StatelessWidget {
         ),
         child: Row(
           children: [
+            _buildBankLogo(bankAccount.logo ?? bankAccount.bankCode, appColors),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,4 +453,35 @@ class BankAccountItemShimmer extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildBankLogo(String logoIdentifier, AppColorExtension appColors) {
+  final logoUrl = logoIdentifier.startsWith('http')
+      ? logoIdentifier
+      : 'https://cdn.paystack.co/bank/logos/$logoIdentifier.png';
+
+  return Container(
+    width: 36.w,
+    height: 36.w,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      shape: BoxShape.circle,
+      border: Border.all(color: appColors.gray200, width: 0.5),
+    ),
+    child: ClipOval(
+      child: Image.network(
+        logoUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Icon(
+              Icons.account_balance,
+              size: 20.sp,
+              color: appColors.gray400,
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }
