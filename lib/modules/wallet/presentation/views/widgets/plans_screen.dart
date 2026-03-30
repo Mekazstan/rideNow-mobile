@@ -8,6 +8,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/providers/auth
 import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -389,12 +390,7 @@ class _PlansScreenState extends State<PlansScreen> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$planName selected!'),
-                        backgroundColor: appColors.green400,
-                      ),
-                    );
+                    ToastService.showSuccess('$planName selected!');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor:

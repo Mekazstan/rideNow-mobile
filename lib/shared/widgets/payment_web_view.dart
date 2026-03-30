@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -9,12 +10,18 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class PaymentWebView extends StatefulWidget {
   final String paymentUrl;
   final String transactionId;
   final double amount;
   final String paymentMethod;
+  final Future<bool> Function(String reference)? onVerifyReference;
+  final Future<bool> Function(String transactionId)? onVerifyTransaction;
+  final VoidCallback? onSuccess;
+  final VoidCallback? onCancel;
+  final String? successMessage;
 
   const PaymentWebView({
     super.key,
@@ -22,22 +29,75 @@ class PaymentWebView extends StatefulWidget {
     required this.transactionId,
     required this.amount,
     required this.paymentMethod,
+    this.onVerifyReference,
+    this.onVerifyTransaction,
+    this.onSuccess,
+    this.onCancel,
+    this.successMessage,
   });
 
   @override
   State<PaymentWebView> createState() => _PaymentWebViewState();
 }
 
+
 class _PaymentWebViewState extends State<PaymentWebView> {
   late final WebViewController _controller;
   bool _isLoading = true;
   String? _errorMessage;
   bool _hasProcessedCallback = false;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeWebView();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!_hasProcessedCallback && mounted) {
+        _checkPaymentStatusQuietly();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  /// Checks payment status without showing loading dialogs
+  Future<void> _checkPaymentStatusQuietly() async {
+    if (_hasProcessedCallback || !mounted) return;
+
+    try {
+      debugPrint('Polling payment status for transaction: ${widget.transactionId}');
+      
+      bool isSuccessful = false;
+      if (widget.onVerifyTransaction != null) {
+        isSuccessful = await widget.onVerifyTransaction!(widget.transactionId);
+      } else {
+        final provider = Provider.of<WalletProvider>(context, listen: false);
+        isSuccessful = await provider.verifyDeposit(widget.transactionId);
+      }
+
+      if (isSuccessful && mounted && !_hasProcessedCallback) {
+        debugPrint('Polling detected successful payment!');
+        _stopPolling();
+        _navigateToRideScreen();
+      }
+    } catch (e) {
+      debugPrint('Polling error (ignoring): $e');
+    }
   }
 
   /// Sets up WebView with navigation handlers
@@ -260,25 +320,26 @@ class _PaymentWebViewState extends State<PaymentWebView> {
     try {
       debugPrint('Verifying payment with reference: $reference');
 
-      final provider = Provider.of<WalletProvider>(context, listen: false);
-      final isSuccessful = await provider.verifyPaymentCallback(reference);
+      bool isSuccessful;
+      if (widget.onVerifyReference != null) {
+        isSuccessful = await widget.onVerifyReference!(reference);
+      } else {
+        final provider = Provider.of<WalletProvider>(context, listen: false);
+        isSuccessful = await provider.verifyPaymentCallback(reference);
+        if (isSuccessful) await provider.refreshWallet();
+      }
 
       if (!mounted) return;
 
       _dismissLoadingDialog();
 
       if (isSuccessful) {
-        debugPrint('Payment verified successfully, refreshing wallet');
-        await provider.refreshWallet();
-
-        if (!mounted) return;
-
-        debugPrint('Navigating to ride screen');
+        debugPrint('Payment verified successfully');
         _navigateToRideScreen();
       } else {
         debugPrint('Payment verification failed, showing error');
         _handlePaymentFailure(
-          'Payment verification failed. Please check your wallet balance.',
+          'Payment verification failed. Please check your transaction status.',
         );
       }
     } catch (e) {
@@ -302,22 +363,22 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         'Verifying payment with transaction ID: ${widget.transactionId}',
       );
 
-      final provider = Provider.of<WalletProvider>(context, listen: false);
-
-      await Future.delayed(const Duration(seconds: 2));
-
-      final isSuccessful = await provider.verifyDeposit(widget.transactionId);
+      bool isSuccessful;
+      if (widget.onVerifyTransaction != null) {
+        isSuccessful = await widget.onVerifyTransaction!(widget.transactionId);
+      } else {
+        final provider = Provider.of<WalletProvider>(context, listen: false);
+        await Future.delayed(const Duration(seconds: 2));
+        isSuccessful = await provider.verifyDeposit(widget.transactionId);
+        if (isSuccessful) await provider.refreshWallet();
+      }
 
       if (!mounted) return;
 
       _dismissLoadingDialog();
 
       if (isSuccessful) {
-        debugPrint('Payment verified successfully, refreshing wallet');
-        await provider.refreshWallet();
-
-        if (!mounted) return;
-
+        debugPrint('Payment verified successfully');
         _navigateToRideScreen();
       } else {
         debugPrint('Payment verification by transaction ID failed');
@@ -354,7 +415,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             ),
           ),
           content: Text(
-            'We couldn\'t verify your payment automatically. Please check your wallet balance to confirm if the payment was successful.',
+            'We couldn\'t verify your payment automatically. Please check your account to confirm if the payment was successful.',
             style: appFonts.textSmRegular.copyWith(
               color: appColors.gray500,
               fontSize: 14.sp,
@@ -379,30 +440,30 @@ class _PaymentWebViewState extends State<PaymentWebView> {
               onPressed: () async {
                 Navigator.pop(context);
 
-                final provider = Provider.of<WalletProvider>(
-                  context,
-                  listen: false,
-                );
-                await provider.refreshWallet();
+                if (widget.onSuccess != null) {
+                  widget.onSuccess!();
+                } else {
+                  final provider = Provider.of<WalletProvider>(
+                    context,
+                    listen: false,
+                  );
+                  await provider.refreshWallet();
 
-                if (!mounted) return;
+                  if (!mounted) return;
 
-                Navigator.of(context).pop(true);
-                context.goNamed(RouteConstants.wallet);
+                  Navigator.of(context).pop(true);
+                  if (context.mounted) {
+                    context.goNamed(RouteConstants.wallet);
+                  }
+                }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please check your wallet balance'),
-                    backgroundColor: appColors.blue600,
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
+                ToastService.showInfo('Please check your transaction status');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: appColors.blue600,
               ),
               child: Text(
-                'Check Wallet',
+                widget.onSuccess != null ? 'Continue' : 'Check Wallet',
                 style: appFonts.textSmMedium.copyWith(
                   color: Colors.white,
                   fontSize: 14.sp,
@@ -417,32 +478,31 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   }
 
   void _navigateToRideScreen() {
-    if (!mounted) return;
+    if (!mounted || _hasProcessedCallback) return;
+    _hasProcessedCallback = true;
+    _stopPolling();
 
-    Navigator.of(context).pop();
-    context.goNamed(RouteConstants.wallet);
+    Navigator.of(context).pop(true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Payment completed successfully!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
-      ),
+    if (widget.onSuccess != null) {
+      widget.onSuccess!();
+    } else {
+      context.goNamed(RouteConstants.wallet);
+    }
+
+    ToastService.showSuccess(
+      widget.successMessage ?? 'Payment completed successfully!',
     );
   }
 
   void _handlePaymentFailure(String message) {
-    if (!mounted) return;
+    if (!mounted || _hasProcessedCallback) return;
+    _hasProcessedCallback = true;
+    _stopPolling();
 
     Navigator.of(context).pop(false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.orange,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToastService.showWarning(message);
   }
 
   void _showLoadingDialog() {
@@ -461,8 +521,29 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   }
 
   Future<void> _handleClosePress() async {
+    // Before showing cancel dialog, do a quick status check
+    if (!_hasProcessedCallback) {
+      try {
+        bool isSuccessful = false;
+        if (widget.onVerifyTransaction != null) {
+          isSuccessful = await widget.onVerifyTransaction!(widget.transactionId);
+        } else {
+          final provider = Provider.of<WalletProvider>(context, listen: false);
+          isSuccessful = await provider.verifyDeposit(widget.transactionId);
+        }
+
+        if (isSuccessful && mounted) {
+          _navigateToRideScreen();
+          return;
+        }
+      } catch (e) {
+        debugPrint('Close check error: $e');
+      }
+    }
+
     final shouldClose = await _showCancelDialog();
     if (shouldClose == true && mounted) {
+      _stopPolling();
       Navigator.of(context).pop(false);
     }
   }
@@ -476,10 +557,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       canPop: false,
       onPopInvoked: (didPop) async {
         if (!didPop) {
-          final shouldPop = await _showCancelDialog();
-          if (shouldPop == true && mounted) {
-            Navigator.of(context).pop(false);
-          }
+          _handleClosePress();
         }
       },
       child: Scaffold(

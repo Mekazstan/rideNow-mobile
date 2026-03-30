@@ -57,20 +57,30 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   /// Subscribes user to a plan and refreshes subscription data
-  Future<bool> subscribeToPlan(String planId) async {
+  Future<Map<String, dynamic>> subscribeToPlan(
+    String planType, {
+    String paymentMethod = 'card',
+    bool autoRenew = true,
+    String? authorizationCode,
+  }) async {
     try {
       if (kDebugMode) {
-        print('=== SubscriptionProvider: Subscribing to Plan $planId ===');
+        print('=== SubscriptionProvider: Subscribing to Plan $planType ===');
       }
 
       _isSubscribing = true;
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _subscriptionService.subscribeToPlan(planId);
+      final response = await _subscriptionService.subscribeToPlan(
+        planType,
+        paymentMethod: paymentMethod,
+        autoRenew: autoRenew,
+        authorizationCode: authorizationCode,
+      );
 
       if (kDebugMode) {
-        print('Subscription successful: ${response['message']}');
+        print('Subscription response: ${response['message']}');
       }
 
       await fetchSubscriptionPlans();
@@ -78,8 +88,9 @@ class SubscriptionProvider extends ChangeNotifier {
       _isSubscribing = false;
       notifyListeners();
 
-      return true;
+      return response;
     } catch (e) {
+
       if (kDebugMode) {
         print('Error subscribing to plan: $e');
       }
@@ -88,9 +99,32 @@ class SubscriptionProvider extends ChangeNotifier {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
 
+      return {'success': false, 'error': _errorMessage};
+    }
+  }
+
+  /// Verifies a subscription payment after WebView checkout
+  Future<bool> verifySubscriptionPayment(String reference) async {
+    try {
+      if (kDebugMode) {
+        print('=== SubscriptionProvider: Verifying Payment $reference ===');
+      }
+
+      final isSuccessful = await _subscriptionService.verifyPayment(reference);
+
+      if (isSuccessful) {
+        await fetchSubscriptionPlans();
+      }
+
+      return isSuccessful;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error verifying subscription payment: $e');
+      }
       return false;
     }
   }
+
 
   /// Clears any error messages
   void clearError() {

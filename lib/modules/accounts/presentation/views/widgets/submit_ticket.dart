@@ -6,6 +6,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/support_provider.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class SubmitTicket extends StatefulWidget {
   const SubmitTicket({super.key});
@@ -40,33 +41,15 @@ class _SubmitTicketState extends State<SubmitTicket> {
     if (!mounted) return;
 
     if (response != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response.message),
-          backgroundColor: appColors.green400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-        ),
-      );
+      ToastService.showSuccess(response.message);
 
       _nameController.clear();
       _descriptionController.clear();
       _formKey.currentState!.reset();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            supportProvider.errorMessage ??
-                'Failed to submit ticket. Please try again.',
-          ),
-          backgroundColor: appColors.red400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-        ),
+      ToastService.showError(
+        supportProvider.errorMessage ??
+            'Failed to submit ticket. Please try again.',
       );
     }
   }

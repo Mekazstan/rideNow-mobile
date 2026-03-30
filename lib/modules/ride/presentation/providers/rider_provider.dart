@@ -230,6 +230,9 @@ class RideProvider extends ChangeNotifier {
         '📍 Current location loaded: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}',
       );
 
+      // Auto-move camera to current location if map is ready
+      _animateCameraToCurrentLocation();
+
       // PRE-FILL PICKUP LOCATION WITH CURRENT LOCATION
       try {
         final details = await _placesRepository.reverseGeocodeAddress(
@@ -275,6 +278,21 @@ class RideProvider extends ChangeNotifier {
 
   void setMapController(GoogleMapController controller) {
     _mapController = controller;
+    // Move camera to current location once controller is available
+    if (_currentLocation != null) {
+      _animateCameraToCurrentLocation();
+    }
+  }
+
+  void _animateCameraToCurrentLocation() {
+    if (_mapController != null && _currentLocation != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          _currentLocation!.toLatLng(),
+          MapConstants.defaultZoom,
+        ),
+      );
+    }
   }
 
   void onCameraMove(CameraPosition position) {

@@ -13,6 +13,7 @@ import 'package:ridenowappsss/modules/accounts/presentation/providers/support_pr
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/account_details_widget.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_radio_button.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class SafetyAndSecuirity extends StatefulWidget {
   const SafetyAndSecuirity({super.key});
@@ -68,25 +69,13 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
         );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newValue
-                ? 'Location sharing activated'
-                : 'Location sharing deactivated',
-          ),
-          backgroundColor: appColors.green400,
-        ),
+      ToastService.showSuccess(
+        newValue
+            ? 'Location sharing activated'
+            : 'Location sharing deactivated',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            supportProvider.errorMessage ?? 'Failed to update location sharing',
-          ),
-          backgroundColor: appColors.red400,
-        ),
-      );
+      ToastService.showError(supportProvider.errorMessage ?? 'Failed to update location sharing');
     }
   }
 
@@ -116,25 +105,13 @@ class _SafetyAndSecuirityState extends State<SafetyAndSecuirity> {
         );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newValue
-                ? 'Detective mode activated'
-                : 'Detective mode deactivated',
-          ),
-          backgroundColor: appColors.green400,
-        ),
+      ToastService.showSuccess(
+        newValue
+            ? 'Detective mode activated'
+            : 'Detective mode deactivated',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            supportProvider.errorMessage ?? 'Failed to update detective mode',
-          ),
-          backgroundColor: appColors.red400,
-        ),
-      );
+      ToastService.showError(supportProvider.errorMessage ?? 'Failed to update detective mode');
     }
   }
 

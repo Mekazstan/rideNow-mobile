@@ -8,6 +8,7 @@ abstract class DriverRepository {
   Future<AcceptRideResponse> acceptRide(AcceptRideRequest request);
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
+  Future<Map<String, dynamic>> getVerificationStatus();
 }
 
 class DriverRepositoryImpl implements DriverRepository {
@@ -52,6 +53,16 @@ class DriverRepositoryImpl implements DriverRepository {
       return await _remoteDataSource.getDriverStatus();
     } catch (e) {
       debugPrint('❌ Repository: Error fetching driver status: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getVerificationStatus() async {
+    try {
+      return await _remoteDataSource.getVerificationStatus();
+    } catch (e) {
+      debugPrint('❌ Repository: Error fetching verification status: $e');
       rethrow;
     }
   }

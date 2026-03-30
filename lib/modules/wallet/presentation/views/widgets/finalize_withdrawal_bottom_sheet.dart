@@ -5,6 +5,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class FinalizeWithdrawalBottomSheet extends StatefulWidget {
   final String transferCode;
@@ -58,12 +59,7 @@ class _FinalizeWithdrawalBottomSheetState
         Navigator.pop(context); // Close sheet
         
         // Show success
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result?['message'] ?? 'Withdrawal completed successfully'),
-            backgroundColor: appColors.green500,
-          ),
-        );
+        ToastService.showSuccess(result?['message'] ?? 'Withdrawal completed successfully');
       }
     } catch (e) {
       if (mounted) {

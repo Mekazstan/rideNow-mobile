@@ -11,6 +11,7 @@ abstract class DriverRemoteDataSource {
   Future<AcceptRideResponse> acceptRide(AcceptRideRequest request);
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
+  Future<Map<String, dynamic>> getVerificationStatus();
 }
 
 class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
@@ -296,6 +297,35 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
       }
     } catch (e) {
       debugPrint('❌ Error in getDriverStatus: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getVerificationStatus() async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.getDriverVerificationStatusEndpoint}');
+
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to fetch verification status');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in getVerificationStatus: $e');
       rethrow;
     }
   }

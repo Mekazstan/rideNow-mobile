@@ -5,6 +5,7 @@ import 'package:ridenowappsss/core/utils/theme/app_theme.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class SwitchRoleModal extends StatefulWidget {
   final String targetRole;
@@ -109,11 +110,11 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
             final success = await authProvider.startDriverOnboarding();
             if (success && mounted) {
               Navigator.pop(context);
-              final route = await authProvider.getOnboardingRoute();
+              final route = await authProvider.getOnboardingRoute(widget.targetRole);
               if (route != null && mounted) {
                 context.pushNamed(route);
               } else if (mounted) {
-                context.goNamed(RouteConstants.letsGetToKnowYou);
+                context.goNamed(RouteConstants.letsKnowYouMore);
               }
             }
             if (mounted) setState(() => _isLoading = false);
@@ -133,19 +134,59 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
           ),
           onPressed: _isLoading ? null : () async {
             setState(() => _isLoading = true);
-            final route = await authProvider.getOnboardingRoute();
+            final route = await authProvider.getOnboardingRoute(widget.targetRole);
             if (mounted) {
-              Navigator.pop(context);
               if (route != null) {
+                // Still has onboarding steps to complete
+                Navigator.pop(context);
                 context.pushNamed(route);
               } else {
-                context.goNamed(RouteConstants.letsGetToKnowYou);
+                // Backend says onboarding is actually complete →
+                // refresh profile and do a normal role switch
+                await authProvider.fetchProfile();
+                final response = await authProvider.switchRole(widget.targetRole);
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                  if (response != null && response.success) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pop(context);
+                    context.goNamed(RouteConstants.ride);
+                  }
+                }
               }
             }
           },
           child: _isLoading
               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
               : const Text("Let's continue onboarding", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        );
+      } else if (user.driverOnboardingStatus == 'completed') {
+        // Onboarding complete but role not yet switched in this session —
+        // perform a normal switchRole to activate the driver UI.
+        return ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: appColors.blue500,
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: _isLoading ? null : () async {
+            setState(() => _isLoading = true);
+            final response = await authProvider.switchRole(widget.targetRole);
+            if (mounted) {
+              setState(() => _isLoading = false);
+              if (response != null && response.success) {
+                Navigator.pop(context);
+              } else {
+                ToastService.showError(response?.message ?? 'Failed to switch role');
+              }
+            }
+          },
+          child: _isLoading
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Switch to Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         );
       }
     }
@@ -162,15 +203,25 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
         setState(() => _isLoading = true);
         final response = await authProvider.switchRole(widget.targetRole);
         if (mounted) {
-          setState(() => _isLoading = false);
           if (response != null && response.success) {
+            setState(() => _isLoading = false);
             Navigator.pop(context);
             // UI will automatically switch due to ConditionalWidget
-          } else if (response != null && !response.success) {
-            // Handle specific failure cases if needed
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.message)),
-            );
+          } else if (response != null && response.status == 'ONBOARDING_REQUIRED') {
+            // Fetch correct route for this role
+            final route = await authProvider.getOnboardingRoute(widget.targetRole);
+            setState(() => _isLoading = false);
+            if (mounted) {
+              Navigator.pop(context);
+              if (route != null) {
+                context.pushNamed(route);
+              } else {
+                context.goNamed(RouteConstants.letsKnowYouMore);
+              }
+            }
+          } else {
+            setState(() => _isLoading = false);
+            ToastService.showError(response?.message ?? 'Failed to switch role');
           }
         }
       },

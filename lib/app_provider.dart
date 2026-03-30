@@ -17,6 +17,8 @@ import 'package:ridenowappsss/modules/wallet/domain/services/bank_validation_ser
 import 'package:ridenowappsss/modules/wallet/domain/services/wallet_service.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/bank_account_provider.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/banks_provider.dart';
+import 'package:ridenowappsss/modules/wallet/presentation/providers/payment_method_provider.dart';
+import 'package:ridenowappsss/modules/wallet/domain/services/payment_method_service.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 
 final List<SingleChildWidget> appProviders = [
@@ -41,6 +43,9 @@ final List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => BottomNavVisibilityProvider()),
   ChangeNotifierProvider(create: (_) => EmergencyContactProvider()),
   ChangeNotifierProvider(create: (_) => CommunityProvider()),
+  ChangeNotifierProvider(
+    create: (_) => PaymentMethodProvider(service: PaymentMethodService()),
+  ),
   ChangeNotifierProvider(
     create:
         (_) => DriverProvider(

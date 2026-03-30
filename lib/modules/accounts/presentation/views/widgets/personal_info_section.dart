@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class PersonalInfoSection extends StatefulWidget {
   const PersonalInfoSection({
@@ -86,19 +87,9 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
 
     if (success && mounted) {
       setState(() => _isEditing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Profile updated successfully'),
-          backgroundColor: widget.appColors.green400,
-        ),
-      );
+      ToastService.showSuccess('Profile updated successfully');
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Failed to update profile'),
-          backgroundColor: widget.appColors.red400,
-        ),
-      );
+      ToastService.showError(authProvider.errorMessage ?? 'Failed to update profile');
     }
   }
 

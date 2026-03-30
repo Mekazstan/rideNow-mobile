@@ -4,6 +4,7 @@ import 'package:ridenowappsss/modules/ride/data/models/driver_ride_request.dart'
 import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.dart';
 import 'package:ridenowappsss/core/services/location_service.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/driver_analytics_models.dart';
+import 'package:ridenowappsss/modules/ride/data/models/driver_misc_models.dart';
 
 class DriverProvider extends ChangeNotifier {
   final DriverRepository _repository;
@@ -21,6 +22,7 @@ class DriverProvider extends ChangeNotifier {
   bool _isRefreshing = false;
   String? _errorMessage;
   Timer? _autoRefreshTimer;
+  VerificationStatusResponse? _verificationStatus;
 
   // Current location for filtering
   String? _currentLocation;
@@ -46,6 +48,7 @@ class DriverProvider extends ChangeNotifier {
   int get ridesCompletedToday => _ridesCompletedToday;
   int get dailyLimit => _dailyLimit;
   int get ridesRemaining => (_dailyLimit - _ridesCompletedToday).clamp(0, _dailyLimit);
+  VerificationStatusResponse? get verificationStatus => _verificationStatus;
 
   // Filtered ride requests based on search
   List<RideRequest> _filteredRequests = [];
@@ -301,6 +304,25 @@ class DriverProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> fetchVerificationStatus() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.getVerificationStatus();
+      if (response['success'] == true) {
+        _verificationStatus = VerificationStatusResponse.fromJson(response['data']);
+      }
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      debugPrint('❌ Error fetching verification status: $_errorMessage');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Refresh ride requests manually

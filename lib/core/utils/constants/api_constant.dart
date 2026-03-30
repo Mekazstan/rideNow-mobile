@@ -26,6 +26,7 @@ class ApiConstants {
   static const String withdrawalPinEndpoint = '/wallets/withdrawal-pin';
   static const String withdrawEndpoint = '/wallets/withdraw';
   static const String paymentCallbackEndpoint = '/wallets/payment-callback';
+  static const String paymentMethodsEndpoint = '/payments/methods';
 
   // Support Endpoints
   static const String ambulanceServicesEndpoint =
@@ -67,8 +68,9 @@ class ApiConstants {
   static const String driverPerformanceAnalyticsEndpoint = '/drivers/analytics/performance';
   static const String driverRatingsAnalyticsEndpoint = '/drivers/analytics/ratings';
   static const String driverWeeklySummaryEndpoint = '/drivers/analytics/weekly-summary';
-  static const String driversVehicleSetupEndpoint = '/onboarding/drivers/vehicle-setup';
+  static const String driversVehicleSetupEndpoint = '/onboardings/drivers/vehicle-setup';
   static const String driversDocumentsBatchEndpoint = '/drivers/documents/batch';
+  static const String getDriverVerificationStatusEndpoint = '/onboardings/driver-verification-status';
   static const String submitBioDataEndpoint = '/onboardings/bio-data';
 
   // Pagination

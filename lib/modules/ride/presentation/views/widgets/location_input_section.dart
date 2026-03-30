@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/location_suggestion_list.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/ride_screen_shimmer.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class LocationInputSection extends StatelessWidget {
   final TextEditingController pickupController;
@@ -197,14 +198,7 @@ class _PickupLocationFieldState extends State<_PickupLocationField> {
                     debugPrint('âŒ Failed to set pickup location');
                     // Show error to user
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Failed to select pickup location. Please try again.',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      ToastService.showError('Failed to select pickup location. Please try again.');
                     }
                   }
 
@@ -330,14 +324,7 @@ class _DestinationLocationFieldState extends State<_DestinationLocationField> {
                     debugPrint('âŒ Failed to set destination location');
                     // Show error to user
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Failed to select destination. Please try again.',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      ToastService.showError('Failed to select destination. Please try again.');
                     }
                   }
 

@@ -11,6 +11,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/providers/bank_account
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/choose_bank_account.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_bottomsheet.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class AddANewBankAccount2 extends StatefulWidget {
   final String? selectedBankName;
@@ -63,14 +64,11 @@ class _AddANewBankAccount2State extends State<AddANewBankAccount2> {
   void _showSnackBar(String message, {required bool isError}) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: Duration(seconds: isError ? 3 : 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (isError) {
+      ToastService.showError(message);
+    } else {
+      ToastService.showSuccess(message);
+    }
   }
 
   @override

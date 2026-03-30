@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
@@ -8,6 +8,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/ride_now
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/ride_now_richtext_widget.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class CallAmbulance extends StatefulWidget {
   const CallAmbulance({super.key});
@@ -37,12 +38,7 @@ class _CallAmbulanceState extends State<CallAmbulance> {
       await launchUrl(phoneUri);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not launch phone dialer for $phoneNumber'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ToastService.showError('Could not launch phone dialer for $phoneNumber');
       }
     }
   }

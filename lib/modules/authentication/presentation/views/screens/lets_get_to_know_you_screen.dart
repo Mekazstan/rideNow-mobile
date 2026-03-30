@@ -427,8 +427,6 @@ class _LetsGetToKnowYouScreenState extends State<LetsGetToKnowYouScreen> {
             ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
             : null;
 
-        ToastService.init(context);
-
         final success = await authProvider.submitBioData(
           firstName: firstName,
           lastName: lastName,

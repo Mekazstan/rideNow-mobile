@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/enums/vehicle_type_enum.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/theme/custom_text_styles.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideSetupSheet extends StatefulWidget {
   final Function(VehicleType vehicle, double amount) onRideConfirmed;
@@ -72,9 +73,7 @@ class _RideSetupSheetState extends State<RideSetupSheet> {
   void _onBook() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
-      );
+      ToastService.showWarning('Please enter a valid amount');
       return;
     }
     widget.onRideConfirmed(_selectedVehicle!, amount);

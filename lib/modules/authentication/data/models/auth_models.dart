@@ -347,6 +347,7 @@ class AuthResponse {
   final String? nextStep;
   @JsonKey(name: 'is_new_user', includeIfNull: false)
   final bool? isNewUser;
+  final String? status;
 
   AuthResponse({
     required this.success,
@@ -357,6 +358,7 @@ class AuthResponse {
     this.tokenExpiresIn,
     this.nextStep,
     this.isNewUser,
+    this.status,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) =>

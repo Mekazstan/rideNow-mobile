@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 extension AmountFormatter on String {
   /// Formats a string amount with commas as thousand separators
@@ -97,13 +98,7 @@ class ClipboardHelper {
 
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(successMessage ?? WithdrawalConstants.copySuccessMessage),
-        duration: WithdrawalConstants.snackBarDuration,
-        backgroundColor: appColors.blue600,
-      ),
-    );
+    ToastService.showInfo(successMessage ?? WithdrawalConstants.copySuccessMessage);
   }
 }
 
@@ -113,13 +108,7 @@ class SnackBarHelper {
 
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: appColors.green400,
-        duration: WithdrawalConstants.snackBarDuration,
-      ),
-    );
+    ToastService.showSuccess(message);
   }
 
   static void showError(BuildContext context, String message) {
@@ -127,13 +116,7 @@ class SnackBarHelper {
 
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: appColors.red400,
-        duration: WithdrawalConstants.snackBarDuration,
-      ),
-    );
+    ToastService.showError(message);
   }
 }
 

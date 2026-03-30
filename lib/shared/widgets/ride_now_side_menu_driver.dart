@@ -17,6 +17,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:ridenowappsss/modules/ride/data/repositories/places_repository.dart';
 import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideNowSideMenuDriver extends StatefulWidget {
   const RideNowSideMenuDriver({super.key});
@@ -498,14 +499,7 @@ class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
       await Future.delayed(const Duration(milliseconds: 300));
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Logged out successfully'),
-          backgroundColor: appColors.green400,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ToastService.showSuccess('Logged out successfully');
 
       debugPrint('=== LOGOUT FLOW COMPLETED ===');
     } catch (e) {
@@ -515,14 +509,7 @@ class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
 
       setState(() => _isLoggingOut = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Logout failed: ${e.toString()}'),
-          backgroundColor: appColors.red400,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ToastService.showError('Logout failed: ${e.toString()}');
     }
   }
 

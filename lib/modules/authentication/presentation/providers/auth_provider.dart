@@ -55,9 +55,9 @@ class AuthProvider extends ChangeNotifier {
   /// Returns the route name the user should be sent to based on the backend
   /// `current_step` from `GET /onboardings/status`.
   /// Returns null when onboarding is fully complete → go to the normal app.
-  Future<String?> getOnboardingRoute() async {
+  Future<String?> getOnboardingRoute([String? targetRole]) async {
     try {
-      final status = await _authService.fetchOnboardingStatus();
+      final status = await _authService.fetchOnboardingStatus(targetRole);
       if (status == null) return null;
 
       final currentStep = status['current_step'] as String?;
@@ -77,6 +77,8 @@ class AuthProvider extends ChangeNotifier {
           return (userType == 'driver' || isOnboardingAsDriver) ? RouteConstants.letsKnowYouMore : null;
         case 'driver_documents':
           return (userType == 'driver' || isOnboardingAsDriver) ? RouteConstants.driverDocumentCollection : null;
+        case 'payment_plan':
+          return (userType == 'driver' || isOnboardingAsDriver) ? RouteConstants.selectPaymentPlan : null;
         case 'completed':
         default:
           return null; // Onboarding done → go to the app
@@ -932,7 +934,7 @@ class AuthProvider extends ChangeNotifier {
       _setAuthState(AuthState.loading);
       _clearErrors();
 
-      final success = await _authService.submitVehicleSetup(
+      final response = await _authService.submitVehicleSetup(
         licensePlate: licensePlate,
         vehicleType: vehicleType,
         make: make,
@@ -945,7 +947,10 @@ class AuthProvider extends ChangeNotifier {
         identificationNumber: identificationNumber,
       );
 
-      if (success) {
+      if (response['success'] == true) {
+        if (response['next_step'] != null) {
+          _nextStep = response['next_step'];
+        }
         _setAuthState(AuthState.authenticated);
         notifyListeners();
         return true;
@@ -1105,35 +1110,50 @@ class AuthProvider extends ChangeNotifier {
     ).hasMatch(email);
   }
 
-  Future<bool> batchUploadDriverDocuments({
+  Future<Map<String, dynamic>?> batchUploadDriverDocuments({
     required List<Map<String, dynamic>> documents,
   }) async {
     try {
       _setAuthState(AuthState.loading);
       _clearErrors();
 
-      final success = await _authService.batchUploadDriverDocuments(
+      final response = await _authService.batchUploadDriverDocuments(
         documents: documents,
       );
 
-      if (success) {
-        _setAuthState(AuthState.authenticated);
-        notifyListeners();
-        return true;
-      }
-      return false;
+      _setAuthState(AuthState.authenticated);
+      notifyListeners();
+      return response;
     } on ApiException catch (e) {
       _setError(e);
-      return false;
+      return null;
     } on NetworkException catch (e) {
       _setError(e);
-      return false;
+      return null;
     } catch (e) {
       _setError(
         NetworkException('Failed to upload documents. Please try again.'),
       );
-      return false;
+      return null;
     }
+  }
+
+  Future<Map<String, dynamic>?> uploadDriverDocument({
+    required String documentType,
+    required String documentUrl,
+    String? documentNumber,
+    String? documentImageBase64,
+  }) async {
+    return batchUploadDriverDocuments(
+      documents: [
+        {
+          'document_type': documentType,
+          'document_url': documentUrl,
+          'document_number': documentNumber,
+          'document_image_base64': documentImageBase64,
+        }
+      ],
+    );
   }
 
   // ============================================================

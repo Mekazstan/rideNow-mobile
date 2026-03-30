@@ -14,6 +14,9 @@ import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 import 'package:ridenowappsss/shared/widgets/step_indicator.dart';
 import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/shared/widgets/payment_web_view.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/widgets/subscription_payment_sheet.dart';
+import 'package:ridenowappsss/modules/wallet/data/models/payment_method_models.dart';
 import 'dart:async';
 
 class SelectPaymentPlanScreen extends StatefulWidget {
@@ -284,42 +287,70 @@ class _SelectPaymentPlanScreenState extends State<SelectPaymentPlanScreen> {
     SubscriptionPlan plan,
     SubscriptionProvider provider,
   ) async {
-    final appColors = Theme.of(context).extension<AppColorExtension>()!;
-    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
-
-    final confirmed = await showDialog<bool>(
+    showModalBottomSheet(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Confirm ${plan.name}'),
-            content: Text(
-              'Are you sure you want to subscribe to the ${plan.name}?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: appColors.blue500),
-                child: const Text('Confirm'),
-              ),
-            ],
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SubscriptionPaymentSheet(
+        plan: plan,
+        onConfirm: (method, autoRenew) async {
+          Navigator.pop(context); // Close sheet
+          _processSubscription(plan, method, autoRenew, provider);
+        },
+      ),
     );
+  }
 
-    if (confirmed != true) return;
-
-    final success = await provider.subscribeToPlan(plan.id);
+  Future<void> _processSubscription(
+    SubscriptionPlan plan,
+    PaymentMethod? method,
+    bool autoRenew,
+    SubscriptionProvider provider,
+  ) async {
+    final response = await provider.subscribeToPlan(
+      plan.planType,
+      paymentMethod: method?.type == PaymentMethodType.bankTransfer 
+          ? 'bank_transfer' 
+          : (method?.type.name ?? 'card'),
+      autoRenew: autoRenew,
+      authorizationCode: method?.authorizationCode,
+    );
 
     if (!mounted) return;
 
-    if (success) {
-      ToastService.showSuccess('Successfully subscribed to plan!');
-      context.goNamed(RouteConstants.accountReady);
+    if (response['success'] == true) {
+      if (response['requires_action'] == true &&
+          response['action_url'] != null) {
+        // Trigger in-app WebView for payment
+        await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => PaymentWebView(
+                  paymentUrl: response['action_url'],
+                  transactionId: response['payment_reference'] ?? '',
+                  amount: plan.price.toDouble(),
+                  paymentMethod: method?.type.name ?? 'card',
+                  onVerifyReference:
+                      (ref) => provider.verifySubscriptionPayment(ref),
+                  onSuccess: () {
+                    if (context.mounted) {
+                      context.goNamed(RouteConstants.accountReady);
+                    }
+                  },
+                  successMessage: 'Subscription payment successful!',
+                ),
+          ),
+        );
+      } else {
+        ToastService.showSuccess('Successfully subscribed to plan!');
+        context.goNamed(RouteConstants.accountReady);
+      }
     } else {
-      String errorMessage = provider.errorMessage ?? 'Failed to subscribe to plan';
+      String errorMessage =
+          response['message'] ??
+          provider.errorMessage ??
+          'Failed to subscribe to plan';
       AppErrorDialog.show(
         context,
         title: 'Subscription Failed',
@@ -327,6 +358,7 @@ class _SelectPaymentPlanScreenState extends State<SelectPaymentPlanScreen> {
       );
     }
   }
+
 
   void _showPlanDetails(
     dynamic plan,

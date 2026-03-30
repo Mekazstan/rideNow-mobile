@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provide
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_ride_details_view.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_ride_request_list_view.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_screenshimmer.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideRequestBottomSheet extends StatefulWidget {
   final String currentLocationName;
@@ -254,17 +255,11 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
     if (!mounted) return;
     Navigator.pop(context);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Ride accepted! Contact the rider.'
-              : 'Failed to accept ride: ${viewModel.errorMessage}',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    if (success) {
+      ToastService.showSuccess('Ride accepted! Contact the rider.');
+    } else {
+      ToastService.showError('Failed to accept ride: ${viewModel.errorMessage}');
+    }
 
     if (success) {
       widget.onBackToList();

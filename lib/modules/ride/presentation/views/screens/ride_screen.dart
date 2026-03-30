@@ -17,6 +17,7 @@ import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_on_way_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_arrived_sheet.dart';
 import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideScreen extends StatefulWidget {
   const RideScreen({super.key});
@@ -32,8 +33,9 @@ class _RideScreenState extends State<RideScreen> {
   late final FocusNode _destinationFocusNode;
 
   GoogleMapController? _mapController;
-
   VehicleType? _selectedVehicleType;
+  // Saved reference so we can safely use it in dispose() without a BuildContext.
+  late final RideProvider _rideProvider;
 
   @override
   void initState() {
@@ -59,7 +61,8 @@ class _RideScreenState extends State<RideScreen> {
   void _initializeViewModel() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final provider = context.read<RideProvider>();
+      _rideProvider = context.read<RideProvider>();
+      final provider = _rideProvider;
 
       // Check permissions and show prompt if needed
       final hasPermission = await provider.checkLocationPermissions();
@@ -114,16 +117,15 @@ class _RideScreenState extends State<RideScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to cancel ride: $e')));
+        ToastService.showError('Failed to cancel ride: $e');
       }
     }
   }
 
   @override
   void dispose() {
-    context.read<RideProvider>().removeListener(_onRideStageChanged);
+    // Use the saved reference – never call context.read() inside dispose().
+    _rideProvider.removeListener(_onRideStageChanged);
     _disposeControllers();
     _disposeFocusNodes();
     _mapController?.dispose();
@@ -174,7 +176,7 @@ class _RideScreenState extends State<RideScreen> {
     });
   }
 
-  RideProvider get _viewModel => context.read<RideProvider>();
+  RideProvider get _viewModel => _rideProvider;
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
@@ -220,12 +222,7 @@ class _RideScreenState extends State<RideScreen> {
 
   void _handleTopUp() {
     debugPrint('Navigating to top-up screen');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Opening wallet top-up...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    ToastService.showInfo('Opening wallet top-up...');
   }
 
   void _fitRouteBounds() {

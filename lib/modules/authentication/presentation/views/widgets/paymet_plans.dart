@@ -112,7 +112,7 @@ class PaymentPlans extends StatelessWidget {
                 RideNowButton(
                   title: 'Choose plan',
                   onTap: onChoosePlan ?? () {},
-                  width: 120.w,
+                  width: 150.w,
                   height: 45.h,
                 ),
                 GestureDetector(

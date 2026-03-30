@@ -5,7 +5,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Smile ID WebView Widget with callback handling
-class SmileIDWebView extends StatefulWidget {
+class SmileIDVerificationScreen extends StatefulWidget {
   final String url;
   final String jobId;
   final String userId;
@@ -13,7 +13,7 @@ class SmileIDWebView extends StatefulWidget {
   final Function(String) onError;
   final VoidCallback? onCancel;
 
-  const SmileIDWebView({
+  const SmileIDVerificationScreen({
     super.key,
     required this.url,
     required this.jobId,
@@ -24,10 +24,10 @@ class SmileIDWebView extends StatefulWidget {
   });
 
   @override
-  State<SmileIDWebView> createState() => _SmileIDWebViewState();
+  State<SmileIDVerificationScreen> createState() => _SmileIDVerificationScreenState();
 }
 
-class _SmileIDWebViewState extends State<SmileIDWebView> {
+class _SmileIDVerificationScreenState extends State<SmileIDVerificationScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   double _loadingProgress = 0.0;

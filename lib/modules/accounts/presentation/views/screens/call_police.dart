@@ -13,6 +13,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/ride_now
 import 'package:ridenowappsss/shared/widgets/ride_now_search_bar.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class CallPolice extends StatefulWidget {
   const CallPolice({super.key});
@@ -84,9 +85,7 @@ class _CallPoliceState extends State<CallPolice> {
       await launchUrl(uri);
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not launch phone dialer')),
-      );
+      ToastService.showError('Could not launch phone dialer');
     }
   }
 

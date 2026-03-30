@@ -155,9 +155,15 @@ class _DriverDocumentCollectionScreenState
       }
 
       if (mounted) {
+        final nextStep = response?['next_step'] as String?;
         ToastService.showSuccess('Documents submitted for verification');
-        // We move to next step immediately because the backend returns fast
-        context.goNamed(RouteConstants.selectPaymentPlan);
+        
+        if (nextStep == 'payment_plan') {
+          context.goNamed(RouteConstants.selectPaymentPlan);
+        } else {
+          // Fallback or move to dashboard if already completed
+          context.goNamed(RouteConstants.dashboard);
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Upload error: $e');

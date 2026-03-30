@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/wallet_models.dart';
@@ -294,13 +295,7 @@ class _BankAccountItem extends StatelessWidget {
   void _copyToClipboard(BuildContext context, String accountNumber) {
     Clipboard.setData(ClipboardData(text: accountNumber));
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Account number copied to clipboard'),
-        duration: const Duration(seconds: 1),
-        backgroundColor: appColors.blue600,
-      ),
-    );
+    ToastService.showSuccess('Account number copied to clipboard');
   }
 }
 

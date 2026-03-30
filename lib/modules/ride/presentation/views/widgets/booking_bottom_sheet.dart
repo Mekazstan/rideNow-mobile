@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/enums/vehicle_type_enum.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class BookingBottomSheet extends StatefulWidget {
   final VehicleType selectedVehicle;
@@ -41,9 +42,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
   void _onContinue() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
-      );
+      ToastService.showWarning('Please enter a valid amount');
       return;
     }
     setState(() {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/payment_method_selection.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_bottomsheet.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
@@ -58,9 +59,7 @@ class _HowMuchDepositState extends State<HowMuchDeposit> {
                 '',
               );
               if (amount.isEmpty || double.tryParse(amount) == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid amount')),
-                );
+                ToastService.showWarning('Please enter a valid amount');
                 return;
               }
               Navigator.pop(context);

@@ -8,6 +8,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class AccountProfileDetails extends StatefulWidget {
   const AccountProfileDetails({
@@ -92,12 +93,9 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pick image: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (mounted) {
+        ToastService.showError('Failed to pick image: ${e.toString()}');
+      }
       }
     }
   }
@@ -173,29 +171,11 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profile photo uploaded successfully!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-          ),
-        );
+        ToastService.showSuccess('Profile photo uploaded successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              authProvider.errorMessage ??
-                  'Failed to upload photo. Please try again.',
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-          ),
+        ToastService.showError(
+          authProvider.errorMessage ??
+              'Failed to upload photo. Please try again.',
         );
       }
     }

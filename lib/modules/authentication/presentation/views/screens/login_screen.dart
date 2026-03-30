@@ -48,7 +48,6 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    ToastService.init(context);
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
 

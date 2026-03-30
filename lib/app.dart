@@ -66,6 +66,7 @@ class _AppState extends State<App> {
 
             return MaterialApp.router(
               debugShowCheckedModeBanner: false,
+              scaffoldMessengerKey: AppRouter.scaffoldMessengerKey,
               title: 'RideNow',
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,

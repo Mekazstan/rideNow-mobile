@@ -13,6 +13,7 @@ import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/accoun
 import 'package:ridenowappsss/modules/accounts/presentation/views/widgets/personal_info_section.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -294,21 +295,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
       context.goNamed(RouteConstants.login);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Logged out successfully'),
-          backgroundColor: appColors.green400,
-        ),
-      );
+      ToastService.showSuccess('Logged out successfully');
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Logout failed: $e'),
-          backgroundColor: appColors.red400,
-        ),
-      );
+      ToastService.showError('Logout failed: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoggingOut = false);
@@ -355,31 +346,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (success) {
         context.goNamed(RouteConstants.login);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Account deleted successfully'),
-            backgroundColor: appColors.green400,
-          ),
-        );
+        ToastService.showSuccess('Account deleted successfully');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              authProvider.errorMessage ?? 'Failed to delete account',
-            ),
-            backgroundColor: appColors.red400,
-          ),
-        );
+        ToastService.showError(authProvider.errorMessage ?? 'Failed to delete account');
       }
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Delete account failed: $e'),
-          backgroundColor: appColors.red400,
-        ),
-      );
+      ToastService.showError('Delete account failed: $e');
     } finally {
       if (mounted) {
         setState(() => _isDeletingAccount = false);

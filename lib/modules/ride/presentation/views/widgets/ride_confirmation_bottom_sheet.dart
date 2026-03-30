@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,6 +9,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/drivers_offers_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideConfirmationSheet {
   static void show(
@@ -139,13 +140,7 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
             // Close the DriverOffersBottomSheet
             Navigator.pop(context);
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Booking confirmed for ${driver.driverName}'),
-                backgroundColor: Colors.green,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            ToastService.showSuccess('Booking confirmed for ${driver.driverName}');
           }
         } catch (error) {
           if (context.mounted) {
@@ -153,13 +148,7 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
               'Exception: ',
               '',
             );
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to book driver: $errorMessage'),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            ToastService.showError('Failed to book driver: $errorMessage');
           }
         }
       },
@@ -173,21 +162,11 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
             // Close the DriverOffersBottomSheet
             Navigator.pop(context);
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Offer accepted successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            ToastService.showSuccess('Offer accepted successfully');
           }
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to accept offer: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            ToastService.showError('Failed to accept offer: $e');
           }
         }
       },
@@ -198,23 +177,12 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
         try {
           await rideViewModel.declineCounterOffer(offer.offerId);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Declined offer from ${offer.driverName}'),
-                backgroundColor: Colors.blue,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            ToastService.showInfo('Declined offer from ${offer.driverName}');
           }
         } catch (e) {
           debugPrint('Error declining offer: $e');
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to decline offer'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            ToastService.showError('Failed to decline offer');
           }
         }
       },
@@ -222,22 +190,7 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
   }
 
   void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            SizedBox(width: 12.w),
-            Expanded(child: Text(message, style: TextStyle(fontSize: 14.sp))),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        margin: EdgeInsets.all(16.w),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-      ),
-    );
+    ToastService.showError(message);
   }
 
   @override

@@ -183,9 +183,12 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchOnboardingStatus() async {
+  Future<Map<String, dynamic>?> fetchOnboardingStatus([String? role]) async {
     try {
-      final response = await _dioClient.get('/onboardings/status');
+      final response = await _dioClient.get(
+        '/onboardings/status',
+        queryParameters: role != null ? {'role': role} : null,
+      );
       return response.data as Map<String, dynamic>?;
     } catch (e) {
       if (kDebugMode) print('fetchOnboardingStatus error: $e');
@@ -193,7 +196,7 @@ class AuthService {
     }
   }
 
-  Future<bool> submitVehicleSetup({
+  Future<Map<String, dynamic>> submitVehicleSetup({
     required String licensePlate,
     required String vehicleType,
     String? make,
@@ -239,12 +242,13 @@ class AuthService {
         );
       }
 
-      await _dioClient.post(
+      final response = await _dioClient.post(
         ApiConstants.driversVehicleSetupEndpoint,
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
-      return true;
+      
+      return response.data;
     } catch (e) {
       if (kDebugMode) {
         print('Submit Vehicle Setup Error: $e');
@@ -309,15 +313,15 @@ class AuthService {
     }
   }
 
-  Future<bool> batchUploadDriverDocuments({
+  Future<Map<String, dynamic>> batchUploadDriverDocuments({
     required List<Map<String, dynamic>> documents,
   }) async {
     try {
-      await _dioClient.post(
+      final response = await _dioClient.post(
         ApiConstants.driversDocumentsBatchEndpoint,
         data: {'documents': documents},
       );
-      return true;
+      return response.data;
     } catch (e) {
       if (kDebugMode) {
         print('Batch Upload Driver Documents Error: $e');

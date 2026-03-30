@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 import 'package:ridenowappsss/shared/widgets/payment_web_view.dart';
@@ -150,13 +151,7 @@ class _SelectPaymentMethodState extends State<SelectPaymentMethod> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToastService.showError(message);
   }
 }
 

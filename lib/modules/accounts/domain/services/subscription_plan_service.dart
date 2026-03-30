@@ -7,7 +7,7 @@ class SubscriptionService {
 
   static const String _subscriptionPlansEndpoint =
       '/drivers/subscription-plans';
-  static const String _subscribeEndpoint = '/drivers/subscribe';
+  static const String _subscribeEndpoint = '/onboardings/drivers/subscription';
 
   Future<SubscriptionPlanResponse> getSubscriptionPlans() async {
     try {
@@ -31,17 +31,29 @@ class SubscriptionService {
     }
   }
 
-  Future<Map<String, dynamic>> subscribeToPlan(String planId) async {
+  Future<Map<String, dynamic>> subscribeToPlan(
+    String planType, {
+    String paymentMethod = 'card',
+    bool autoRenew = true,
+    String? authorizationCode,
+  }) async {
     try {
       if (kDebugMode) {
         print('=== Subscribe to Plan ===');
         print('Endpoint: $_subscribeEndpoint');
-        print('Plan ID: $planId');
+        print('Plan Type: $planType');
+        print('Payment Method: $paymentMethod');
+        if (authorizationCode != null) print('Authorization Code: $authorizationCode');
       }
 
       final response = await _dioClient.post(
         _subscribeEndpoint,
-        data: {'plan_id': planId},
+        data: {
+          'plan_type': planType.toLowerCase(),
+          'payment_method': paymentMethod,
+          'auto_renew': autoRenew,
+          if (authorizationCode != null) 'authorization_code': authorizationCode,
+        },
       );
 
       if (kDebugMode) {
@@ -56,4 +68,36 @@ class SubscriptionService {
       rethrow;
     }
   }
+
+
+  Future<bool> verifyPayment(String reference) async {
+    try {
+      if (kDebugMode) {
+        print('=== Verify Subscription Payment ===');
+        print('Reference: $reference');
+      }
+
+      final response = await _dioClient.get(
+        '/wallets/payment-callback',
+        queryParameters: {'reference': reference},
+      );
+
+      if (kDebugMode) {
+        print('Verify Response: ${response.data}');
+      }
+
+      final data = response.data as Map<String, dynamic>;
+      
+      // The backend redirect might cause Dio to return the final page or 
+      // if it's an API call, it returns the JSON.
+      // Based on WalletService, we expect a 'success' field.
+      return data['success'] == true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Verify Subscription Payment Error: $e');
+      }
+      return false;
+    }
+  }
 }
+

@@ -29,10 +29,15 @@ import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/analytic
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/plans_screen.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/screens/driver_ride_screen.dart';
 import 'package:ridenowappsss/modules/community/presentation/views/screens/community_screen.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/driver_document_collection_screen.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/document_resubmission_screen.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/verification_status_screen.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/views/screens/smile_id_verification_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
+  static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   static final GoRouter _router = GoRouter(
     debugLogDiagnostics: true,
@@ -321,12 +326,119 @@ class AppRouter {
       ),
 
       GoRoute(
+        path: '/smileIdVerification',
+        name: RouteConstants.smileIdVerification,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: SmileIDVerificationScreen(
+              url: extra['url'] ?? '',
+              jobId: extra['jobId'] ?? '',
+              userId: extra['userId'] ?? '',
+              onSuccess: (data) => debugPrint('Success: $data'),
+              onError: (error) => debugPrint('Error: $error'),
+            ),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
         path: '/letsKnowYouMore',
         name: RouteConstants.letsKnowYouMore,
         pageBuilder: (context, state) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: const LetsKnowYouMoreScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/driverDocumentCollection',
+        name: RouteConstants.driverDocumentCollection,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const DriverDocumentCollectionScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/documentResubmission',
+        name: RouteConstants.documentResubmission,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: DocumentResubmissionScreen(
+              documentType: extra['documentType'] ?? 'drivers_license',
+              documentName: extra['documentName'] ?? 'License',
+            ),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/verificationStatus',
+        name: RouteConstants.verificationStatus,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const VerificationStatusScreen(),
             transitionsBuilder: (
               context,
               animation,
