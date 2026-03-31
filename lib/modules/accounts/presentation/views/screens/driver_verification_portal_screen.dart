@@ -53,6 +53,11 @@ class _DriverVerificationPortalScreenState extends State<DriverVerificationPorta
       );
 
       ToastService.showSuccess('Document re-uploaded successfully');
+      
+      // Auto-refresh to show "Awaiting Review"
+      if (mounted) {
+        authProvider.loadDriverDocuments();
+      }
     } catch (e) {
       ToastService.showError('Re-upload failed: $e');
     }
@@ -66,6 +71,8 @@ class _DriverVerificationPortalScreenState extends State<DriverVerificationPorta
         return 'Vehicle Registration';
       case 'insurance':
         return 'Insurance Certificate';
+      case 'car_image':
+        return 'Car Image';
       case 'roadworthiness':
         return 'Roadworthiness';
       default:
@@ -86,53 +93,71 @@ class _DriverVerificationPortalScreenState extends State<DriverVerificationPorta
     return RidenowScaffold(
       showAppBar: true,
       appBarTitle: 'Verification Portal',
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOverallStatusCard(appColors, appFonts, isActionRequired),
-            SizedBox(height: 24.h),
-            Text(
-              'Your Documents',
-              style: appFonts.textBaseBold.copyWith(color: appColors.textPrimary),
-            ),
-            SizedBox(height: 12.h),
-            Expanded(
-              child: isLoading
-                  ? Center(child: CircularProgressIndicator(color: appColors.blue600))
-                  : documents.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.description_outlined, size: 64.sp, color: appColors.gray300),
-                              SizedBox(height: 16.h),
-                              Text(
-                                'No verification documents found',
-                                style: appFonts.textMdBold.copyWith(color: appColors.textPrimary),
-                              ),
-                              SizedBox(height: 8.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 40.w),
-                                child: Text(
-                                  'Your submitted documents will appear here once they are processed by our admin team.',
-                                  textAlign: TextAlign.center,
-                                  style: appFonts.textSmMedium.copyWith(color: appColors.gray500),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: documents.length,
-                          itemBuilder: (context, index) {
-                            final doc = documents[index];
-                            return _buildDocumentTile(doc, appColors, appFonts);
-                          },
+      showFirstImage: false,
+      showBottomImage: false,
+      body: RefreshIndicator(
+        onRefresh: () => authProvider.loadDriverDocuments(),
+        color: appColors.blue600,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildOverallStatusCard(appColors, appFonts, isActionRequired),
+                    SizedBox(height: 24.h),
+                    Text(
+                      'Your Documents',
+                      style: appFonts.textBaseBold.copyWith(color: appColors.textPrimary),
+                    ),
+                    SizedBox(height: 12.h),
+                  ],
+                ),
+              ),
+              if (isLoading)
+                SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: appColors.blue600)),
+                )
+              else if (documents.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.description_outlined, size: 64.sp, color: appColors.gray300),
+                        SizedBox(height: 16.h),
+                        Text(
+                          'No verification documents found',
+                          style: appFonts.textMdBold.copyWith(color: appColors.textPrimary),
                         ),
-            ),
-          ],
+                        SizedBox(height: 8.h),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 40.w),
+                          child: Text(
+                            'Your submitted documents will appear here once they are processed by our admin team.',
+                            textAlign: TextAlign.center,
+                            style: appFonts.textSmMedium.copyWith(color: appColors.gray500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final doc = documents[index];
+                      return _buildDocumentTile(doc, appColors, appFonts);
+                    },
+                    childCount: documents.length,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -172,7 +197,7 @@ class _DriverVerificationPortalScreenState extends State<DriverVerificationPorta
 
   Widget _buildDocumentTile(Map<String, dynamic> doc, AppColorExtension appColors, AppFontThemeExtension appFonts) {
     final status = doc['status'] as String;
-    final comment = doc['adminComment'] as String?;
+    final comment = doc['adminComment'] as String? ?? doc['rejectionReason'] as String?;
     final docType = doc['documentType'] as String;
     final docName = _mapBackendDocTypeToName(docType);
 

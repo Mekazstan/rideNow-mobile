@@ -1,11 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
+import 'package:ridenowappsss/core/navigation/route_constant.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_screenshimmer.dart';
-
 class RideRequestsListView extends StatelessWidget {
   final DriverProvider viewModel;
   final AppColorExtension appColors;
@@ -61,6 +62,62 @@ class RideRequestsListView extends StatelessWidget {
   }
 
   Widget _buildErrorState(BuildContext context) {
+    final isUnverified = viewModel.errorMessage?.contains('No active and verified vehicle found') == true ||
+        viewModel.errorMessage?.contains('DRIVER_VERIFICATION_REQUIRED') == true;
+
+    if (isUnverified) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.pending_actions, size: 48.sp, color: appColors.orange500),
+              SizedBox(height: 12.h),
+              Text(
+                'Pending Admin Approval',
+                textAlign: TextAlign.center,
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Text(
+                  'Your profile is currently under review. You will be notified once it is approved.',
+                  textAlign: TextAlign.center,
+                  style: appFonts.textSmMedium.copyWith(
+                    color: appColors.textSecondary,
+                    fontSize: 13.sp,
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.pushNamed(RouteConstants.driverVerificationPortal);
+                },
+                icon: Icon(Icons.remove_red_eye, size: 18.sp),
+                label: const Text('View Status'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: appColors.blue600,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: Padding(
         padding: EdgeInsets.all(16.w),

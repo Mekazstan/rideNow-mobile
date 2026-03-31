@@ -12,6 +12,8 @@ abstract class DriverRemoteDataSource {
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
   Future<Map<String, dynamic>> getVerificationStatus();
+  Future<void> goOnline(double lat, double lng, String location);
+  Future<void> goOffline();
 }
 
 class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
@@ -102,7 +104,7 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
               errorData['errors'] as String? ??
               '';
 
-          debugPrint('❌ Bad Request Details:');
+          debugPrint('Bad Request Details:');
           debugPrint('   Message: $errorMessage');
           debugPrint('   Details: $details');
           debugPrint('   Full error body: ${response.body}');
@@ -129,8 +131,8 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
           if (e.toString().contains('Exception:')) {
             rethrow;
           }
-          debugPrint('❌ Error parsing error response: $e');
-          debugPrint('❌ Raw response body: ${response.body}');
+          debugPrint('Error parsing error response: $e');
+          debugPrint('Raw response body: ${response.body}');
           throw Exception(
             'Bad Request - The server rejected the request parameters. Please check your location data.',
           );
@@ -149,11 +151,11 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
             errorData?['message'] as String? ??
             errorData?['error'] as String? ??
             'Failed to fetch ride requests (Status: ${response.statusCode})';
-        debugPrint('❌ Error fetching ride requests: $errorMessage');
+        debugPrint('Error fetching ride requests: $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
-      debugPrint('❌ Error in getRideRequests: $e');
+      debugPrint('Error in getRideRequests: $e');
       if (e.toString().contains('SocketException') ||
           e.toString().contains('TimeoutException')) {
         throw Exception(
@@ -207,11 +209,11 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
             errorData?['message'] as String? ??
             errorData?['error'] as String? ??
             'Failed to accept ride';
-        debugPrint('❌ Error accepting ride: $errorMessage');
+        debugPrint('Error accepting ride: $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
-      debugPrint('❌ Error in acceptRide: $e');
+      debugPrint('Error in acceptRide: $e');
       if (e.toString().contains('SocketException') ||
           e.toString().contains('TimeoutException')) {
         throw Exception(
@@ -249,18 +251,18 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
       debugPrint('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        debugPrint('✅ Ride rejected successfully');
+        debugPrint('Ride rejected successfully');
       } else {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
         final errorMessage =
             errorData?['message'] as String? ??
             errorData?['error'] as String? ??
             'Failed to reject ride';
-        debugPrint('❌ Error rejecting ride: $errorMessage');
+        debugPrint('Error rejecting ride: $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
-      debugPrint('❌ Error in rejectRide: $e');
+      debugPrint('Error in rejectRide: $e');
       if (e.toString().contains('SocketException') ||
           e.toString().contains('TimeoutException')) {
         throw Exception(
@@ -296,7 +298,7 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         throw Exception('Failed to fetch driver status');
       }
     } catch (e) {
-      debugPrint('❌ Error in getDriverStatus: $e');
+      debugPrint('Error in getDriverStatus: $e');
       rethrow;
     }
   }
@@ -325,7 +327,62 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         throw Exception('Failed to fetch verification status');
       }
     } catch (e) {
-      debugPrint('❌ Error in getVerificationStatus: $e');
+      debugPrint('Error in getVerificationStatus: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> goOnline(double lat, double lng, String location) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.goOnlineEndpoint}');
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'lat': lat,
+          'lng': lng,
+          'location': location,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final errorData = json.decode(response.body) as Map<String, dynamic>?;
+        throw Exception(errorData?['message'] ?? 'Failed to go online');
+      }
+    } catch (e) {
+      debugPrint('Error in goOnline: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> goOffline() async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.goOfflineEndpoint}');
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        final errorData = json.decode(response.body) as Map<String, dynamic>?;
+        throw Exception(errorData?['message'] ?? 'Failed to go offline');
+      }
+    } catch (e) {
+      debugPrint('Error in goOffline: $e');
       rethrow;
     }
   }

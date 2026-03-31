@@ -6,6 +6,7 @@ import 'package:ridenowappsss/modules/accounts/presentation/views/screens/accoun
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/call_abulance.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/call_police.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/community_sharing.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/views/screens/driver_verification_portal_screen.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/help_center.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/privacy_policy_screen.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/views/screens/safety_and_secuirity.dart';
@@ -613,6 +614,30 @@ class AppRouter {
           return CustomTransitionPage(
             key: state.pageKey,
             child: const TermsAndConditionsScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/driverVerificationPortal',
+        name: RouteConstants.driverVerificationPortal,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const DriverVerificationPortalScreen(),
             transitionsBuilder: (
               context,
               animation,

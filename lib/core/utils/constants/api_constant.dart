@@ -52,6 +52,8 @@ class ApiConstants {
   static const String driverRideRequestsEndpoint = '/drivers/ride-requests';
   static const String acceptRideEndpoint = '/drivers/accept-ride';
   static const String rejectRideEndpoint = '/drivers/reject-ride';
+  static const String goOnlineEndpoint = '/drivers/go-online';
+  static const String goOfflineEndpoint = '/drivers/go-offline';
   static const String getAvailableDriversEndpoint =
       '/rides/{rideId}/available-drivers';
   static const String getCounterOffersEndpoint =
@@ -70,7 +72,7 @@ class ApiConstants {
   static const String driverWeeklySummaryEndpoint = '/drivers/analytics/weekly-summary';
   static const String driversVehicleSetupEndpoint = '/onboardings/drivers/vehicle-setup';
   static const String driversDocumentsBatchEndpoint = '/drivers/documents/batch';
-  static const String getDriverVerificationStatusEndpoint = '/onboardings/driver-verification-status';
+  static const String getDriverVerificationStatusEndpoint = '/drivers/verification-status';
   static const String submitBioDataEndpoint = '/onboardings/bio-data';
 
   // Pagination

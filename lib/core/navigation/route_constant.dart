@@ -30,4 +30,5 @@ class RouteConstants {
   static const String dashboard = 'dashboard';
   static const String privacyPolicy = 'privacyPolicy';
   static const String termsAndConditions = 'termsAndConditions';
+  static const String driverVerificationPortal = 'driverVerificationPortal';
 }

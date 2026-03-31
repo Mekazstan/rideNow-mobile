@@ -18,6 +18,9 @@ import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_on_
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_arrived_sheet.dart';
 import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
+import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
+import 'package:ridenowappsss/shared/widgets/glowing_online_toggle.dart';
 
 class RideScreen extends StatefulWidget {
   const RideScreen({super.key});
@@ -26,7 +29,7 @@ class RideScreen extends StatefulWidget {
   State<RideScreen> createState() => _RideScreenState();
 }
 
-class _RideScreenState extends State<RideScreen> {
+class _RideScreenState extends State<RideScreen> with WidgetsBindingObserver {
   late final TextEditingController _pickupController;
   late final TextEditingController _destinationController;
   late final FocusNode _pickupFocusNode;
@@ -43,6 +46,18 @@ class _RideScreenState extends State<RideScreen> {
     _initializeControllers();
     _initializeFocusNodes();
     _initializeViewModel();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      final driverProvider = context.read<DriverProvider>();
+      if (driverProvider.isOnline) {
+        debugPrint('📱 App backgrounded: going offline automatically');
+        driverProvider.toggleOnlineStatus();
+      }
+    }
   }
 
   void _initializeControllers() {
@@ -129,6 +144,7 @@ class _RideScreenState extends State<RideScreen> {
     _disposeControllers();
     _disposeFocusNodes();
     _mapController?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -180,14 +196,21 @@ class _RideScreenState extends State<RideScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    // Redundant: ViewModel.setMapController already handles initial centering.
+    /*
     final location = _viewModel.currentLocation;
     if (location != null) {
       _animateCamera(location.toLatLng(), MapConstants.defaultZoom);
     }
+    */
   }
 
   void _animateCamera(LatLng target, double zoom) {
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(target, zoom));
+    try {
+      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(target, zoom));
+    } catch (e) {
+      debugPrint('[MAP] Widget animation error: $e');
+    }
   }
 
   Future<void> _handlePickupSelection(PlacePrediction prediction) async {
@@ -227,15 +250,23 @@ class _RideScreenState extends State<RideScreen> {
 
   void _fitRouteBounds() {
     final bounds = _viewModel.getRouteBounds();
-    if (bounds != null) {
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(bounds, MapConstants.routeBoundsPadding),
-      );
+    if (bounds != null && _mapController != null) {
+      try {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngBounds(bounds, MapConstants.routeBoundsPadding),
+        );
+      } catch (e) {
+        debugPrint('[MAP] Bounds animation error: $e');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final isDriver = authProvider.user?.userType.toLowerCase() == 'driver';
+    final isVerified = authProvider.user?.verificationStatus.toLowerCase() == 'verified';
+
     return Consumer<RideProvider>(
       builder: (context, viewModel, _) {
         final isBooked =
@@ -249,6 +280,22 @@ class _RideScreenState extends State<RideScreen> {
             child: Stack(
               children: [
                 Positioned.fill(child: MapSection(onMapCreated: _onMapCreated)),
+
+                // Driver Online Toggle
+                if (isDriver && isVerified)
+                  Positioned(
+                    top: 10.h,
+                    right: 20.w,
+                    child: Consumer<DriverProvider>(
+                      builder: (context, driverProvider, child) {
+                        return GlowingOnlineToggle(
+                          isOnline: driverProvider.isOnline,
+                          isLoading: driverProvider.isTogglingStatus,
+                          onToggle: () => driverProvider.toggleOnlineStatus(),
+                        );
+                      },
+                    ),
+                  ),
 
                 if (isBooked)
                   Positioned(

@@ -280,6 +280,9 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
       case 'roadworthiness':
         iconData = Icons.build_circle;
         break;
+      case 'car_image':
+        iconData = Icons.directions_car;
+        break;
       default:
         iconData = Icons.file_present;
     }

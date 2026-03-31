@@ -33,6 +33,8 @@ class AuthProvider extends ChangeNotifier {
   String? _tempConfirmPassword;
 
   bool _isUploadingPhoto = false;
+  bool _isDocumentsLoading = false;
+  List<Map<String, dynamic>> _driverDocuments = [];
 
   Function()? onSessionExpired;
 
@@ -51,6 +53,8 @@ class AuthProvider extends ChangeNotifier {
   String? get tempPassword => _tempPassword;
   String? get tempConfirmPassword => _tempConfirmPassword;
   bool get isUploadingPhoto => _isUploadingPhoto;
+  bool get isDocumentsLoading => _isDocumentsLoading;
+  List<Map<String, dynamic>> get driverDocuments => _driverDocuments;
 
   /// Returns the route name the user should be sent to based on the backend
   /// `current_step` from `GET /onboardings/status`.
@@ -1147,13 +1151,33 @@ class AuthProvider extends ChangeNotifier {
     return batchUploadDriverDocuments(
       documents: [
         {
-          'document_type': documentType,
-          'document_url': documentUrl,
-          'document_number': documentNumber,
-          'document_image_base64': documentImageBase64,
+          'documentType': documentType,
+          'documentUrl': documentUrl,
+          'documentNumber': documentNumber,
+          'documentImageBase64': documentImageBase64,
         }
       ],
     );
+  }
+
+  Future<void> loadDriverDocuments() async {
+    try {
+      _isDocumentsLoading = true;
+      notifyListeners();
+
+      final response = await _authService.getDriverVerificationStatus();
+      if (response['documents'] != null) {
+        _driverDocuments = List<Map<String, dynamic>>.from(response['documents']);
+      } else {
+        _driverDocuments = [];
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error loading driver documents: $e');
+      _driverDocuments = [];
+    } finally {
+      _isDocumentsLoading = false;
+      notifyListeners();
+    }
   }
 
   // ============================================================

@@ -293,7 +293,7 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
                 final lastName = user?.lastName ?? '';
                 final fullName = '$firstName $lastName'.trim();
                 final displayName = fullName.isEmpty ? 'Guest User' : fullName;
-                final isDriver = user?.userType.toLowerCase() == 'driver';
+                final isDriver = user?.currentRole?.toLowerCase() == 'driver';
 
                 return Column(
                   children: [
@@ -317,24 +317,31 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
                             height: 20.h,
                           ),
                         ],
+                        if (isDriver) ...[
+                          SizedBox(width: 8.w),
+                          Icon(Icons.star_rounded, color: Colors.amber, size: 22.sp),
+                          SizedBox(width: 2.w),
+                          Text(
+                            user?.rating?.toStringAsFixed(1) ?? '0.0', 
+                            style: widget.appFonts.textSmMedium.copyWith(
+                              color: widget.appColors.textPrimary,
+                              fontSize: 16.sp, 
+                              fontWeight: FontWeight.bold
+                            )
+                          ),
+                        ]
                       ],
                     ),
                     SizedBox(height: 4.h),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (user?.rating != null || isDriver) ...[
-                          Icon(
-                            Icons.star_rounded,
-                            color: Colors.amber,
-                            size: 18.sp,
-                          ),
-                          SizedBox(width: 4.w),
+                        if (isDriver) ...[
                           Text(
-                            user?.rating?.toStringAsFixed(1) ?? '0.0',
+                            '${user?.totalRides ?? 0} Rides',
                             style: widget.appFonts.textSmMedium.copyWith(
-                              color: widget.appColors.textPrimary,
-                              fontSize: 16.sp,
+                              color: widget.appColors.textSecondary,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -350,7 +357,7 @@ class _AccountProfileDetailsState extends State<AccountProfileDetails> {
                           SizedBox(width: 8.w),
                         ],
                         Text(
-                          user?.userType.toUpperCase() ?? 'RIDER',
+                           user?.currentRole?.toUpperCase() ?? user?.userType.toUpperCase() ?? 'RIDER',
                           style: widget.appFonts.textSmMedium.copyWith(
                             color: widget.appColors.textSecondary,
                             fontSize: 12.sp,

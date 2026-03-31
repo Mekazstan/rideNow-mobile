@@ -27,20 +27,20 @@ class LocationServiceImpl implements LocationService {
       if (cachedLocation != null) {
         _lastKnownLocation = cachedLocation;
         debugPrint(
-          'ðŸ“ Using cached location: ${cachedLocation.latitude}, ${cachedLocation.longitude}',
+          'Using cached location: ${cachedLocation.latitude}, ${cachedLocation.longitude}',
         );
 
         _updateLocationInBackground();
         return cachedLocation;
       }
       if (!await isLocationServiceEnabled()) {
-        debugPrint('âš ï¸ Location service disabled, using default');
+        debugPrint('Location service disabled, using default');
         return LocationModel.defaultLocation();
       }
 
       // 3. Check permissions
       if (!await requestLocationPermission()) {
-        debugPrint('âš ï¸ Location permission denied, using default');
+        debugPrint('Location permission denied, using default');
         return LocationModel.defaultLocation();
       }
 
@@ -60,15 +60,15 @@ class LocationServiceImpl implements LocationService {
       _lastKnownLocation = location;
 
       debugPrint(
-        'ðŸ“ Fresh location obtained: ${location.latitude}, ${location.longitude}',
+        'Fresh location obtained: ${location.latitude}, ${location.longitude}',
       );
       return location;
     } catch (e) {
-      debugPrint('âŒ Error getting location: $e');
+      debugPrint('Error getting location: $e');
 
       // Return last known location if available
       if (_lastKnownLocation != null) {
-        debugPrint('ðŸ“ Using last known location');
+        debugPrint('Using last known location');
         return _lastKnownLocation!;
       }
 
@@ -93,7 +93,7 @@ class LocationServiceImpl implements LocationService {
       final cacheValidityMs = _cacheValidityMinutes * 60 * 1000;
 
       if (cacheAge > cacheValidityMs) {
-        debugPrint('âš ï¸ Cached location expired');
+        debugPrint('Cached location expired');
         return null;
       }
 
@@ -114,9 +114,9 @@ class LocationServiceImpl implements LocationService {
         _cacheKeyTimestamp,
         DateTime.now().millisecondsSinceEpoch,
       );
-      debugPrint('âœ… Location cached successfully');
+      debugPrint('[LOCATION] Success: Location cached successfully');
     } catch (e) {
-      debugPrint('âŒ Error caching location: $e');
+      debugPrint('Error caching location: $e');
     }
   }
 
@@ -135,7 +135,7 @@ class LocationServiceImpl implements LocationService {
 
       await _cacheLocation(location);
       _lastKnownLocation = location;
-      debugPrint('âœ… Background location update completed');
+      debugPrint('[LOCATION] Success: Background location update completed');
     } catch (e) {
       debugPrint('âš ï¸ Background location update failed: $e');
     }
@@ -178,7 +178,7 @@ class LocationServiceImpl implements LocationService {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      debugPrint('âš ï¸ Location permissions permanently denied');
+      debugPrint('Location permissions permanently denied');
       return false;
     }
 
@@ -193,9 +193,9 @@ class LocationServiceImpl implements LocationService {
       await prefs.remove(_cacheKeyLng);
       await prefs.remove(_cacheKeyTimestamp);
       _lastKnownLocation = null;
-      debugPrint('âœ… Location cache cleared');
+      debugPrint('[LOCATION] Success: Location cache cleared');
     } catch (e) {
-      debugPrint('âŒ Error clearing location cache: $e');
+      debugPrint('Error clearing location cache: $e');
     }
   }
 }

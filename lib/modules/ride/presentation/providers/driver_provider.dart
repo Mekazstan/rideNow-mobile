@@ -23,6 +23,8 @@ class DriverProvider extends ChangeNotifier {
   String? _errorMessage;
   Timer? _autoRefreshTimer;
   VerificationStatusResponse? _verificationStatus;
+  bool _isOnline = false;
+  bool _isTogglingStatus = false;
 
   // Current location for filtering
   String? _currentLocation;
@@ -49,6 +51,8 @@ class DriverProvider extends ChangeNotifier {
   int get dailyLimit => _dailyLimit;
   int get ridesRemaining => (_dailyLimit - _ridesCompletedToday).clamp(0, _dailyLimit);
   VerificationStatusResponse? get verificationStatus => _verificationStatus;
+  bool get isOnline => _isOnline;
+  bool get isTogglingStatus => _isTogglingStatus;
 
   // Filtered ride requests based on search
   List<RideRequest> _filteredRequests = [];
@@ -97,6 +101,13 @@ class DriverProvider extends ChangeNotifier {
 
     if (_currentLat!.abs() < 0.0001 || _currentLon!.abs() < 0.0001) {
       _errorMessage = 'Invalid location coordinates (too close to zero)';
+      notifyListeners();
+      return;
+    }
+
+    // Only allow fetching ride requests if the driver is online
+    if (!_isOnline) {
+      _rideRequests = [];
       notifyListeners();
       return;
     }
@@ -345,6 +356,48 @@ class DriverProvider extends ChangeNotifier {
   String getLocationSummary() {
     if (!hasLocation) return 'Location not set';
     return '$_currentLocation (${_currentLat!.toStringAsFixed(4)}, ${_currentLon!.toStringAsFixed(4)})';
+  }
+
+  /// Toggle online/offline status
+  Future<void> toggleOnlineStatus() async {
+    if (_isTogglingStatus) return;
+
+    // Check verification before allowing to go online
+    if (!_isOnline) {
+      if (_verificationStatus == null ||
+          _verificationStatus!.backgroundCheckStatus != 'passed' ||
+          _verificationStatus!.approvalStatus != 'approved') {
+        _errorMessage = 'You must be fully verified and approved to go online.';
+        notifyListeners();
+        return;
+      }
+    }
+
+    _isTogglingStatus = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      if (_isOnline) {
+        await _repository.goOffline();
+        _isOnline = false;
+        stopAutoRefresh();
+        _rideRequests = [];
+      } else {
+        if (_currentLat == null || _currentLon == null || _currentLocation == null) {
+          throw Exception('Location not available. Please enable location services.');
+        }
+        await _repository.goOnline(_currentLat!, _currentLon!, _currentLocation!);
+        _isOnline = true;
+        startAutoRefresh(); // Start auto-refreshing requests when online
+      }
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      debugPrint('❌ Error toggling status: $_errorMessage');
+    } finally {
+      _isTogglingStatus = false;
+      notifyListeners();
+    }
   }
 
   @override

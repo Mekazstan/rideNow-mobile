@@ -142,15 +142,16 @@ class RideProvider extends ChangeNotifier {
   // Initialization
   Future<void> initialize() async {
     _isInitializing = true;
+    _isLoadingLocation = true;
     notifyListeners();
 
-    await _loadCurrentLocation();
+    await _loadCurrentLocation(silent: true);
 
     // Check for persisted state
     final persisted = await _persistenceService.getPersistedState();
     if (persisted != null) {
       debugPrint(
-        '🔄 Restoring persisted ride: ${persisted.rideId} at stage ${persisted.stage}',
+        '[RIDE_RESTORE] Restoring persisted ride: ${persisted.rideId} at stage ${persisted.stage}',
       );
 
       _currentRideId = persisted.rideId;
@@ -188,7 +189,7 @@ class RideProvider extends ChangeNotifier {
           _rideStage == RideStage.driverArrived ||
           _rideStage == RideStage.inProgress ||
           _rideStage == RideStage.searchingDrivers) {
-        debugPrint('⚠️ Stale booking state detected after login. Resetting.');
+        debugPrint('[RIDE_INIT] Warning: Stale booking state detected after login. Resetting.');
         _clearInMemoryState();
         await _loadCurrentLocation();
       }
@@ -214,20 +215,22 @@ class RideProvider extends ChangeNotifier {
         plateNumber: _bookedPlateNumber,
       );
     } catch (e) {
-      debugPrint('⚠️ Error persisting ride state: $e');
+      debugPrint('[RIDE_PERSIST] Warning: Error persisting ride state: $e');
     }
   }
 
-  Future<void> _loadCurrentLocation() async {
-    _isLoadingLocation = true;
-    notifyListeners();
+  Future<void> _loadCurrentLocation({bool silent = false}) async {
+    if (!silent) {
+      _isLoadingLocation = true;
+      notifyListeners();
+    }
 
     _currentLocation = await _locationService.getCurrentLocation();
     if (_currentLocation != null) {
       _markerManager.addCurrentLocationMarker(_currentLocation!);
 
       debugPrint(
-        '📍 Current location loaded: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}',
+        '[LOCATION] Current location loaded: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}',
       );
 
       // Auto-move camera to current location if map is ready
@@ -253,15 +256,17 @@ class RideProvider extends ChangeNotifier {
             profilePhotoUrl: _userProfilePhoto,
           );
 
-          debugPrint('🏠 Default pickup set to: ${_pickupLocation?.address}');
+          debugPrint('[GEOCODING] Default pickup set to: ${_pickupLocation?.address}');
         }
       } catch (e) {
-        debugPrint('⚠️ Error reverse geocoding current location: $e');
+        debugPrint('[GEOCODING] Warning: Error reverse geocoding current location: $e');
       }
     }
 
     _isLoadingLocation = false;
-    notifyListeners();
+    if (!silent) {
+      notifyListeners();
+    }
   }
 
   Future<bool> checkLocationPermissions() async {
@@ -285,13 +290,18 @@ class RideProvider extends ChangeNotifier {
   }
 
   void _animateCameraToCurrentLocation() {
-    if (_mapController != null && _currentLocation != null) {
+    if (_mapController == null || _currentLocation == null) return;
+    
+    try {
+      debugPrint('[MAP] Animate camera to: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}');
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(
           _currentLocation!.toLatLng(),
           MapConstants.defaultZoom,
         ),
       );
+    } catch (e) {
+      debugPrint('[MAP] Error animating camera: $e');
     }
   }
 

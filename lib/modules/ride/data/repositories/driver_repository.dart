@@ -9,6 +9,8 @@ abstract class DriverRepository {
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
   Future<Map<String, dynamic>> getVerificationStatus();
+  Future<void> goOnline(double lat, double lng, String location);
+  Future<void> goOffline();
 }
 
 class DriverRepositoryImpl implements DriverRepository {
@@ -63,6 +65,26 @@ class DriverRepositoryImpl implements DriverRepository {
       return await _remoteDataSource.getVerificationStatus();
     } catch (e) {
       debugPrint('❌ Repository: Error fetching verification status: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> goOnline(double lat, double lng, String location) async {
+    try {
+      await _remoteDataSource.goOnline(lat, lng, location);
+    } catch (e) {
+      debugPrint('❌ Repository: Error going online: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> goOffline() async {
+    try {
+      await _remoteDataSource.goOffline();
+    } catch (e) {
+      debugPrint('❌ Repository: Error going offline: $e');
       rethrow;
     }
   }

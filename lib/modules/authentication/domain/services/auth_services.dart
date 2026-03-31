@@ -330,6 +330,23 @@ class AuthService {
     }
   }
 
+  Future<Map<String, dynamic>> getDriverVerificationStatus() async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.getDriverVerificationStatusEndpoint,
+      );
+      if (response.data != null && response.data['data'] != null) {
+        return response.data['data'];
+      }
+      return response.data ?? {};
+    } catch (e) {
+      if (kDebugMode) {
+        print('Get Driver Verification Status Error: $e');
+      }
+      rethrow;
+    }
+  }
+
   // ============================================================
   // DELETE ACCOUNT
   // ============================================================
