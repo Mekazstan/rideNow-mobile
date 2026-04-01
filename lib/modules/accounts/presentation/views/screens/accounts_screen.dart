@@ -25,7 +25,7 @@ class AccountsScreen extends StatefulWidget {
 class _AccountsScreenState extends State<AccountsScreen> {
   bool _isLoggingOut = false;
   bool _isDeletingAccount = false;
-  bool _isLoadingProfile = true;
+  bool _isLoadingProfile = false; // Default to false, will be set in initState if needed
 
   @override
   void initState() {
@@ -35,19 +35,21 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   /// Fetches and updates user profile data from the server
   Future<void> _loadUserProfile() async {
-    if (kDebugMode) {
-      print('=== AccountsScreen: Loading User Profile ===');
-    }
-
-    setState(() => _isLoadingProfile = true);
-
     final authProvider = context.read<AuthProvider>();
 
+    // Only show shimmer if we don't have a user yet
+    // This implements the "Silent Refresh" pattern for a better UX
+    if (authProvider.user == null) {
+      if (mounted) setState(() => _isLoadingProfile = true);
+    } else {
+      if (mounted) setState(() => _isLoadingProfile = false);
+    }
+
     if (kDebugMode) {
+      print('=== AccountsScreen: Loading User Profile ===');
       print(
         'Current user before fetch: ${authProvider.user?.firstName} ${authProvider.user?.lastName}',
       );
-      print('Current user email: ${authProvider.user?.email}');
     }
 
     final success = await authProvider.fetchProfile();
@@ -57,8 +59,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
       print(
         'User after fetch: ${authProvider.user?.firstName} ${authProvider.user?.lastName}',
       );
-      print('User email after fetch: ${authProvider.user?.email}');
-      print('Profile photo: ${authProvider.user?.profilePhoto}');
     }
 
     if (mounted) {
@@ -167,6 +167,28 @@ class _AccountsScreenState extends State<AccountsScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               PersonalInfoSection(appColors: appColors, appFonts: appFonts),
+              SizedBox(height: 32.h),
+              Text(
+                'Ride History',
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              _buildLargeMenuContainer(
+                appColors,
+                [
+                  _buildMenuItem(
+                    appFonts,
+                    appColors,
+                    'My Rides',
+                    'assets/document.svg',
+                    () => context.pushNamed(RouteConstants.myRides),
+                  ),
+                ],
+              ),
               SizedBox(height: 32.h),
               Text(
                 'Settings & Support',

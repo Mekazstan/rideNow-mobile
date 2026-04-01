@@ -32,7 +32,7 @@ class AmountInput extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Amount (N)',
+          'Amount (₦)',
           style: appFonts.textSmMedium.copyWith(
             color: hasError ? appColors.red400 : appColors.gray600,
             fontSize: 14.sp,
@@ -59,7 +59,7 @@ class AmountInput extends StatelessWidget {
                   RidenowTextfield(
                     fieldName: '',
                     showFieldName: false,
-                    hintText: 'N1,000,000',
+                    hintText: '₦1,000,000',
                     controller: controller,
                     keyboardType: TextInputType.number,
                     inputFormatters: [

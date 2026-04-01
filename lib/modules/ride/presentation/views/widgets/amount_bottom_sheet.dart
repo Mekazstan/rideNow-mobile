@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +6,7 @@ import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/ride_confirmation_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class AmountBottomSheet {
   static void show(
@@ -76,12 +77,12 @@ class _AmountBottomSheetContentState extends State<_AmountBottomSheetContent> {
   }
 
   bool get _isAmountValid {
-    final text = _amountController.text.trim();
-    return text.isNotEmpty && int.tryParse(text) != null;
+    final text = _amountController.text.replaceAll(',', '').trim();
+    return text.isNotEmpty && (int.tryParse(text) ?? 0) > 0;
   }
 
   void _validateAndContinue(WalletProvider walletProvider) {
-    final amount = _amountController.text.trim();
+    final amount = _amountController.text.replaceAll(',', '').trim();
 
     if (amount.isEmpty) {
       setState(() {
@@ -174,7 +175,7 @@ class _AmountBottomSheetContentState extends State<_AmountBottomSheetContent> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'N',
+                              '₦',
                               style: widget.appFonts.textBaseMedium.copyWith(
                                 color:
                                     _errorMessage != null
@@ -192,7 +193,8 @@ class _AmountBottomSheetContentState extends State<_AmountBottomSheetContent> {
                                   textAlign: TextAlign.center,
                                   autofocus: true,
                                   inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
+                                    FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')),
+                                    CommaInputFormatter(),
                                   ],
                                   style: widget.appFonts.textBaseMedium
                                       .copyWith(
@@ -295,7 +297,9 @@ class _AmountBottomSheetContentState extends State<_AmountBottomSheetContent> {
                       SizedBox(width: 12.w),
                       Expanded(
                         child: Text(
-                          'Accept the nearest driver for N5000 automatically.',
+                          _amountController.text.isEmpty
+                              ? 'Accept the nearest driver automatically.'
+                              : 'Accept the nearest driver for ${_amountController.text.formatAmountWithCurrency()} automatically.',
                           style: widget.appFonts.textSmRegular.copyWith(
                             color: widget.appColors.textSecondary,
                             fontSize: 13.sp,

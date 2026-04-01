@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/core/storage/ride_persistence.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
+import 'package:ridenowappsss/core/services/socket_service.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
@@ -136,6 +137,9 @@ class AuthProvider extends ChangeNotifier {
           _refreshToken = storedRefreshToken;
           _user = storedUser;
           _authService.setAuthToken(storedToken);
+          
+          // Connect Socket
+          getIt<SocketService>().setToken(storedToken);
 
           if (_user != null) {
             // Set authenticated state immediately with cached data
@@ -300,6 +304,7 @@ class AuthProvider extends ChangeNotifier {
       // Step 3: Clear secure storage and ride state
       await _storageService.clearAuthData();
       await getIt<RidePersistenceService>().clearRideState();
+      getIt<SocketService>().disconnect();
 
       if (kDebugMode) {
         print('âœ… Auth data and ride state cleared');
@@ -641,6 +646,7 @@ class AuthProvider extends ChangeNotifier {
     // Set token for API calls
     if (authResponse.token != null) {
       _authService.setAuthToken(authResponse.token!);
+      getIt<SocketService>().setToken(authResponse.token!);
     }
 
     // Update state

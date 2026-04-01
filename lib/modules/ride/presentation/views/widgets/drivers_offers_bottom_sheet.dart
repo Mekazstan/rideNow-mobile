@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,9 +7,10 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/data/models/available_drvers.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class DriverOffersBottomSheet {
-  static void show(
+  static Future<void> show(
     BuildContext context, {
     required RideProvider rideViewModel,
     required Future<void> Function(AvailableDriver) onBookDriver,
@@ -19,7 +20,7 @@ class DriverOffersBottomSheet {
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
 
-    showModalBottomSheet(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -34,7 +35,9 @@ class DriverOffersBottomSheet {
             onAcceptOffer: onAcceptOffer,
             onDeclineOffer: onDeclineOffer,
           ),
-    );
+    ).then((_) {
+      rideViewModel.setRideDetailVisible(false);
+    });
   }
 }
 
@@ -98,10 +101,10 @@ class _DriverOffersContentState extends State<_DriverOffersContent> {
       }
 
       debugPrint(
-        'ðŸ“Š Found ${widget.rideViewModel.availableDrivers.length} accepted drivers',
+        'Found ${widget.rideViewModel.availableDrivers.length} accepted drivers',
       );
       debugPrint(
-        'ðŸ“Š Found ${widget.rideViewModel.counterOffers.length} counter offers',
+        'Found ${widget.rideViewModel.counterOffers.length} counter offers',
       );
     } catch (e) {
       if (mounted) {
@@ -111,7 +114,7 @@ class _DriverOffersContentState extends State<_DriverOffersContent> {
           _errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
       }
-      debugPrint('âŒ Error fetching drivers: $e');
+      debugPrint('Error fetching drivers: $e');
     }
   }
 
@@ -483,7 +486,7 @@ class _DriverOffersContentState extends State<_DriverOffersContent> {
         ),
         SizedBox(height: 4.h),
         Text(
-          '$driverCount Drivers accepted your price',
+          '$driverCount available drivers near you',
           style: widget.appFonts.textSmRegular.copyWith(
             color: widget.appColors.textSecondary,
             fontSize: 13.sp,
@@ -666,7 +669,7 @@ class _AcceptedDriverCardState extends State<_AcceptedDriverCard> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  '${widget.driver.ridesCompleted} rides â€¢ ETA: ${widget.driver.estimatedTime}',
+                  '${widget.driver.ridesCompleted} rides ETA: ${widget.driver.estimatedTime}',
                   style: widget.appFonts.textSmRegular.copyWith(
                     color: widget.appColors.textSecondary,
                     fontSize: 12.sp,
@@ -969,7 +972,7 @@ class _SwipeableOfferCardState extends State<_SwipeableOfferCard>
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          '${widget.offer.ridesCompleted} rides â€¢ ETA: ${widget.offer.estimatedTime}',
+                          '${widget.offer.ridesCompleted} rides ETA: ${widget.offer.estimatedTime}',
                           style: widget.appFonts.textSmRegular.copyWith(
                             color: widget.appColors.textSecondary,
                             fontSize: 12.sp,
@@ -985,7 +988,7 @@ class _SwipeableOfferCardState extends State<_SwipeableOfferCard>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'â‚¦${widget.offer.proposedFare.toStringAsFixed(0)}',
+                        widget.offer.proposedFare.formatAmountWithCurrency(),
                         style: widget.appFonts.textBaseMedium.copyWith(
                           color: widget.appColors.textPrimary,
                           fontSize: 16.sp,

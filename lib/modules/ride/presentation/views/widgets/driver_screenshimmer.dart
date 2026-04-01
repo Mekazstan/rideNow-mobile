@@ -292,26 +292,28 @@ class DriverEmptyStateShimmer extends StatelessWidget {
   }
 }
 
-/// Shimmer for loading dialog
 class DriverLoadingDialogShimmer extends StatelessWidget {
   const DriverLoadingDialogShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        padding: EdgeInsets.all(24.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ShimmerBox(width: 40.w, height: 40.h, borderRadius: 20.r),
-            SizedBox(height: 16.h),
-            ShimmerBox(width: 150.w, height: 14.h, borderRadius: 4.r),
-          ],
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShimmerBox(width: 40.w, height: 40.h, borderRadius: 20.r),
+              SizedBox(height: 16.h),
+              ShimmerBox(width: 150.w, height: 14.h, borderRadius: 4.r),
+            ],
+          ),
         ),
       ),
     );

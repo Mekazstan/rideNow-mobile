@@ -14,6 +14,17 @@ abstract class DriverRemoteDataSource {
   Future<Map<String, dynamic>> getVerificationStatus();
   Future<void> goOnline(double lat, double lng, String location);
   Future<void> goOffline();
+  Future<Map<String, dynamic>> updateLocation({
+    required double lat,
+    required double lng,
+    String? address,
+    double? heading,
+    double? speed,
+  });
+  Future<void> notifyArrival(String rideId, String type, double lat, double lng, String address);
+  Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address);
+  Future<void> completeRide(String rideId, double lat, double lng, String address);
+  Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address);
 }
 
 class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
@@ -180,9 +191,26 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$_baseUrl${ApiConstants.acceptRideEndpoint}');
+      // rideId goes in the URL path: POST /drivers/ride-requests/:rideId/accept
+      final url = '$_baseUrl${ApiConstants.acceptRideEndpoint(request.rideId)}';
+      final uri = Uri.parse(url);
 
-      debugPrint('🚗 Accepting ride: ${request.toJson()}');
+      debugPrint('🚗 Accepting ride: ${request.rideId} → $url');
+
+      // Build the body with required fields that AcceptRideDto expects
+      final body = <String, dynamic>{
+        // driver_location: use the cached last-known location if available,
+        // or send a placeholder — the backend geospatially has the driver's position.
+        'driver_location': {
+          'lat': request.driverLat ?? 0.0,
+          'lng': request.driverLng ?? 0.0,
+        },
+        // estimated_arrival in minutes — send a sensible default if unknown
+        'estimated_arrival': request.estimatedArrivalMinutes ?? 5,
+      };
+      if (request.proposedFare != null) {
+        body['accepted_fare'] = request.proposedFare;
+      }
 
       final response = await _client
           .post(
@@ -191,7 +219,7 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
             },
-            body: json.encode(request.toJson()),
+            body: json.encode(body),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -205,11 +233,12 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         return acceptResponse;
       } else {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
-        final errorMessage =
-            errorData?['message'] as String? ??
-            errorData?['error'] as String? ??
-            'Failed to accept ride';
-        debugPrint('Error accepting ride: $errorMessage');
+        // NestJS validation errors return message as List<String>, not String
+        final rawMessage = errorData?['message'];
+        final errorMessage = rawMessage is List
+            ? (rawMessage as List<dynamic>).join(', ')
+            : rawMessage as String? ?? errorData?['error'] as String? ?? 'Failed to accept ride';
+        debugPrint('❌ Error accepting ride: $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -233,9 +262,11 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$_baseUrl${ApiConstants.rejectRideEndpoint}');
+      // rideId goes in the URL path: POST /drivers/ride-requests/:rideId/decline
+      final url = '$_baseUrl${ApiConstants.rejectRideEndpoint(rideId)}';
+      final uri = Uri.parse(url);
 
-      debugPrint('🚗 Rejecting ride: $rideId');
+      debugPrint('🚗 Rejecting ride: $rideId → $url');
 
       final response = await _client
           .post(
@@ -244,21 +275,21 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
             },
-            body: json.encode({'ride_id': rideId}),
+            body: json.encode({}),
           )
           .timeout(const Duration(seconds: 15));
 
       debugPrint('📡 Response status: ${response.statusCode}');
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        debugPrint('Ride rejected successfully');
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+        debugPrint('✅ Ride rejected successfully');
       } else {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
         final errorMessage =
             errorData?['message'] as String? ??
             errorData?['error'] as String? ??
             'Failed to reject ride';
-        debugPrint('Error rejecting ride: $errorMessage');
+        debugPrint('❌ Error rejecting ride: $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -319,7 +350,7 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -377,7 +408,7 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
         },
       ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
+      if (response.statusCode != 200 && response.statusCode != 201 && response.statusCode != 204) {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
         throw Exception(errorData?['message'] ?? 'Failed to go offline');
       }
@@ -385,5 +416,204 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
       debugPrint('Error in goOffline: $e');
       rethrow;
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateLocation({
+    required double lat,
+    required double lng,
+    String? address,
+    double? heading,
+    double? speed,
+  }) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.updateLocationEndpoint}');
+      
+      final body = {
+        'location': {
+          'lat': lat,
+          'lng': lng,
+          if (address != null) 'address': address,
+          if (heading != null) 'heading': heading,
+          if (speed != null) 'speed': speed,
+        },
+        if (heading != null) 'heading': heading,
+        if (speed != null) 'speed': speed,
+      };
+
+      debugPrint('🚗 Updating location: ${json.encode(body)}');
+
+      final response = await _client.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 25));
+
+      debugPrint('📡 Update position response: ${response.statusCode}');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        final errorData = json.decode(response.body) as Map<String, dynamic>?;
+        throw Exception(errorData?['message'] ?? 'Failed to update location');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in updateLocation: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> notifyArrival(String rideId, String type, double lat, double lng, String address) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final url = '$_baseUrl/drivers/rides/$rideId/arrival';
+      debugPrint('🚗 Notifying arrival: $rideId → $url');
+
+      final body = {
+        'arrival_type': type,
+        'location': {
+          'lat': lat,
+          'lng': lng,
+          'address': address
+        }
+      };
+
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+         final errorData = json.decode(response.body) as Map<String, dynamic>?;
+         throw Exception(errorData?['message'] ?? 'Failed to notify arrival');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in notifyArrival: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address) async {
+     try {
+       final token = await _storageService.getAuthToken();
+       if (token == null) throw Exception('Authentication token not found');
+
+       final url = '$_baseUrl/drivers/rides/$rideId/start';
+       debugPrint('🚗 Starting ride: $rideId → $url');
+
+       final body = {
+         'ride_code': rideCode,
+         'driver_location': {
+           'lat': lat,
+           'lng': lng,
+           'address': address
+         }
+       };
+
+       final response = await _client.post(
+         Uri.parse(url),
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+         },
+         body: json.encode(body),
+       ).timeout(const Duration(seconds: 15));
+
+       if (response.statusCode != 200 && response.statusCode != 201) {
+          final errorData = json.decode(response.body) as Map<String, dynamic>?;
+          throw Exception(errorData?['message'] ?? 'Failed to start ride');
+       }
+     } catch (e) {
+       debugPrint('❌ Error in startRide: $e');
+       rethrow;
+     }
+  }
+
+  @override
+  Future<void> completeRide(String rideId, double lat, double lng, String address) async {
+     try {
+       final token = await _storageService.getAuthToken();
+       if (token == null) throw Exception('Authentication token not found');
+
+       final url = '$_baseUrl/drivers/rides/$rideId/complete';
+       debugPrint('🚗 Completing ride: $rideId → $url');
+
+       final body = {
+         'end_location': {
+           'lat': lat,
+           'lng': lng,
+           'address': address
+         }
+       };
+
+       final response = await _client.post(
+         Uri.parse(url),
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+         },
+         body: json.encode(body),
+       ).timeout(const Duration(seconds: 15));
+
+       if (response.statusCode != 200 && response.statusCode != 201) {
+          final errorData = json.decode(response.body) as Map<String, dynamic>?;
+          throw Exception(errorData?['message'] ?? 'Failed to complete ride');
+       }
+     } catch (e) {
+       debugPrint('❌ Error in completeRide: $e');
+       rethrow;
+     }
+  }
+
+  @override
+  Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address) async {
+     try {
+       final token = await _storageService.getAuthToken();
+       if (token == null) throw Exception('Authentication token not found');
+
+       final url = '$_baseUrl/drivers/rides/$rideId/cancel';
+       debugPrint('🚗 Canceling active ride: $rideId → $url');
+
+       final body = {
+         'reason': reason,
+         if (customReason != null) 'description': customReason,
+         'current_location': {
+           'lat': lat,
+           'lng': lng,
+           'address': address
+         }
+       };
+
+       final response = await _client.post(
+         Uri.parse(url),
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+         },
+         body: json.encode(body),
+       ).timeout(const Duration(seconds: 15));
+
+       if (response.statusCode != 200 && response.statusCode != 201) {
+          final errorData = json.decode(response.body) as Map<String, dynamic>?;
+          throw Exception(errorData?['message'] ?? 'Failed to cancel active ride');
+       }
+     } catch (e) {
+       debugPrint('❌ Error in cancelActiveRide: $e');
+       rethrow;
+     }
   }
 }

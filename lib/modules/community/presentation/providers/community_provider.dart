@@ -72,6 +72,8 @@ class CommunityProvider extends ChangeNotifier {
 
   Future<bool> fetchSharedRides() async {
     try {
+      // Only set to loading state if we don't have data yet
+      // This implements the "Silent Refresh" pattern for a better UX
       if (_sharedRides.isEmpty) {
         _state = CommunityState.loading;
         notifyListeners();

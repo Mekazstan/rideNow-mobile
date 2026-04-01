@@ -686,3 +686,123 @@ class RideStatusUpdateResponse {
     );
   }
 }
+
+class RideHistoryResponse {
+  final List<RideHistoryItem> rides;
+  final int totalCount;
+
+  RideHistoryResponse({required this.rides, required this.totalCount});
+
+  factory RideHistoryResponse.fromJson(Map<String, dynamic> json) {
+    return RideHistoryResponse(
+      rides:
+          (json['rides'] as List<dynamic>?)
+              ?.map((e) => RideHistoryItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      totalCount: json['total_count'] as int? ?? 0,
+    );
+  }
+}
+
+class RideHistoryItem {
+  final String rideId;
+  final String status;
+  final LocationResponseDto pickupLocation;
+  final LocationResponseDto destination;
+  final double fare;
+  final String currency;
+  final String createdAt;
+  final String? driverName;
+  final String? vehicleInfo;
+
+  RideHistoryItem({
+    required this.rideId,
+    required this.status,
+    required this.pickupLocation,
+    required this.destination,
+    required this.fare,
+    required this.currency,
+    required this.createdAt,
+    this.driverName,
+    this.vehicleInfo,
+  });
+
+  factory RideHistoryItem.fromJson(Map<String, dynamic> json) {
+    return RideHistoryItem(
+      rideId: json['ride_id'] as String? ?? '',
+      status: json['status'] as String? ?? '',
+      pickupLocation: LocationResponseDto.fromJson(
+        json['pickup_location'] as Map<String, dynamic>,
+      ),
+      destination: LocationResponseDto.fromJson(
+        json['destination'] as Map<String, dynamic>,
+      ),
+      fare: (json['fare'] as num?)?.toDouble() ?? 0.0,
+      currency: json['currency'] as String? ?? 'NGN',
+      createdAt: json['created_at'] as String? ?? '',
+      driverName: json['driver_name'] as String?,
+      vehicleInfo: json['vehicle_info'] as String?,
+    );
+  }
+}
+
+class LocationResponseDto {
+  final String address;
+  final CoordinatesResponseDto coordinates;
+
+  LocationResponseDto({required this.address, required this.coordinates});
+
+  factory LocationResponseDto.fromJson(Map<String, dynamic> json) {
+    return LocationResponseDto(
+      address: json['address'] as String? ?? '',
+      coordinates: CoordinatesResponseDto.fromJson(
+        json['coordinates'] as Map<String, dynamic>,
+      ),
+    );
+  }
+}
+
+class CoordinatesResponseDto {
+  final double lat;
+  final double lng;
+
+  CoordinatesResponseDto({required this.lat, required this.lng});
+
+  factory CoordinatesResponseDto.fromJson(Map<String, dynamic> json) {
+    return CoordinatesResponseDto(
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
+class RideCodeResponse {
+  final String code;
+
+  RideCodeResponse({required this.code});
+
+  factory RideCodeResponse.fromJson(Map<String, dynamic> json) {
+    return RideCodeResponse(code: json['code']?.toString() ?? '');
+  }
+}
+
+class AutoAcceptNearestResponse {
+  final bool success;
+  final String message;
+  final String? rideId;
+
+  AutoAcceptNearestResponse({
+    required this.success,
+    required this.message,
+    this.rideId,
+  });
+
+  factory AutoAcceptNearestResponse.fromJson(Map<String, dynamic> json) {
+    return AutoAcceptNearestResponse(
+      success: json['success'] as bool? ?? false,
+      message: json['message'] as String? ?? '',
+      rideId: json['rideId'] as String?,
+    );
+  }
+}

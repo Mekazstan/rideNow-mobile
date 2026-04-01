@@ -10,6 +10,7 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -122,7 +123,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           iconColor: Colors.orange.shade400,
           backgroundColor: Colors.orange.shade50,
           title: 'Total revenue\ngenerated',
-          value: 'N567,900.67',
+          value: 567900.67.formatAmountWithCurrency(),
         ),
         _buildMetricCard(
           imagePath: 'assets/ridess.svg',
@@ -255,7 +256,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             SizedBox(width: 12.w),
             Text(
-              'N${_formatAmount(location.amount)}',
+              location.amount.formatAmountWithCurrency(),
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
@@ -269,17 +270,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 }
 
-String _formatAmount(double amount) {
-  if (amount >= 1000) {
-    return amount
-        .toStringAsFixed(amount % 1 == 0 ? 0 : 2)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-  return amount.toString();
-}
+
 
 class _LocationEarning {
   final String name;

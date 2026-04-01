@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/ride/data/models/place_details.dart';
 import 'package:ridenowappsss/modules/ride/data/models/place_prediction.dart';
 import 'package:ridenowappsss/modules/ride/data/models/ride_request_model.dart';
 import 'package:ridenowappsss/modules/ride/data/models/route_model.dart';
+import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart';
 
 abstract class PlacesRepository {
   Future<List<PlacePrediction>> searchPlaces(
@@ -53,9 +54,14 @@ abstract class PlacesRepository {
 
   Future<void> declineCounterOffer(String rideId, String offerId);
 
-  Future<void> cancelRide(String rideId);
-
   Future<PlaceDetails?> reverseGeocodeAddress(double lat, double lng);
+
+  Future<RideHistoryResponse> getRiderHistory();
+  Future<RideDetails?> getActiveRide();
+  Future<void> cancelRide(String rideId, {String? reason, String? otherReason});
+  Future<AutoAcceptNearestResponse> autoAcceptNearestRide(String rideId, int maxWaitMinutes);
+  Future<ChatHistoryResponse> getChatHistory(String rideId);
+  Future<SendMessageResponse> sendMessage(String rideId, String message);
 }
 
 class PlacesRepositoryImpl implements PlacesRepository {
@@ -274,12 +280,39 @@ class PlacesRepositoryImpl implements PlacesRepository {
   }
 
   @override
-  Future<void> cancelRide(String rideId) async {
-    await _remoteDataSource.cancelRide(rideId);
+  Future<void> cancelRide(String rideId, {String? reason, String? otherReason}) async {
+    await _remoteDataSource.cancelRide(rideId, reason: reason, otherReason: otherReason);
+  }
+
+  @override
+  Future<AutoAcceptNearestResponse> autoAcceptNearestRide(String rideId, int maxWaitMinutes) async {
+    return await _remoteDataSource.autoAcceptNearestRide(rideId, maxWaitMinutes);
+  }
+
+  @override
+  Future<RideDetails?> getActiveRide() async {
+    return await _remoteDataSource.getActiveRide();
   }
 
   @override
   Future<PlaceDetails?> reverseGeocodeAddress(double lat, double lng) async {
     return await _remoteDataSource.reverseGeocode(lat, lng);
+  }
+
+  @override
+  Future<RideHistoryResponse> getRiderHistory() async {
+    return await _remoteDataSource.getRiderHistory();
+  }
+
+
+
+  @override
+  Future<ChatHistoryResponse> getChatHistory(String rideId) async {
+    return await _remoteDataSource.getChatHistory(rideId);
+  }
+
+  @override
+  Future<SendMessageResponse> sendMessage(String rideId, String message) async {
+    return await _remoteDataSource.sendMessage(rideId, message);
   }
 }

@@ -10,20 +10,36 @@ extension AmountFormatter on String {
     final cleanAmount = replaceAll(RegExp(r'[^0-9.]'), '');
     if (cleanAmount.isEmpty) return '0';
     final parts = cleanAmount.split('.');
+    
+    // Format integer part
     final intPart = int.tryParse(parts[0]) ?? 0;
-    final formatted = intPart.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    final formattedInt = intPart.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+
+    // Handle decimal part
     if (parts.length > 1) {
-      return '$formatted.${parts[1]}';
+      final decimalPart = parts[1];
+      // If decimal part is just zeros (e.g., .0 or .00), drop it
+      if (int.tryParse(decimalPart) == 0) {
+        return formattedInt;
+      }
+      // Otherwise keep up to 2 decimal places
+      return '$formattedInt.${decimalPart.length > 2 ? decimalPart.substring(0, 2) : decimalPart}';
     }
-    return formatted;
+    return formattedInt;
   }
 
   /// Formats a string amount with currency prefix and thousand separators
-  String formatAmountWithCurrency({String currency = 'N'}) {
+  String formatAmountWithCurrency({String currency = '₦'}) {
     return '$currency${formatAmount()}';
+  }
+
+  /// Converts a formatted amount string (e.g. \"₦484,500\") back to a numeric double
+  double toNumber() {
+    final cleanString = replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(cleanString) ?? 0.0;
   }
 }
 
@@ -35,7 +51,7 @@ extension NumericAmountFormatter on num {
   }
 
   /// Formats a numeric value with currency prefix and thousand separators
-  String formatAmountWithCurrency({String currency = 'N'}) {
+  String formatAmountWithCurrency({String currency = '₦'}) {
     return '$currency${formatAmount()}';
   }
 }

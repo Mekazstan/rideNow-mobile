@@ -9,8 +9,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/providers/auth
 import 'package:ridenowappsss/modules/authentication/presentation/providers/emergency_contact_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/user_provider.dart';
 import 'package:ridenowappsss/modules/community/presentation/providers/community_provider.dart';
-import 'package:ridenowappsss/modules/ride/data/data_sources/driver_remote_data_source.dart';
-import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.dart';
+import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
 import 'package:ridenowappsss/modules/wallet/domain/services/bank_account_service.dart';
 import 'package:ridenowappsss/modules/wallet/domain/services/bank_validation_service.dart';
@@ -46,15 +45,7 @@ final List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(
     create: (_) => PaymentMethodProvider(service: PaymentMethodService()),
   ),
-  ChangeNotifierProvider(
-    create:
-        (_) => DriverProvider(
-          repository: DriverRepositoryImpl(
-            remoteDataSource: DriverRemoteDataSourceImpl(
-              storageService: SecureStorageService(),
-            ),
-          ),
-          locationService: LocationServiceImpl(),
-        ),
+  ChangeNotifierProvider<DriverProvider>(
+    create: (_) => getIt<DriverProvider>(),
   ),
 ];

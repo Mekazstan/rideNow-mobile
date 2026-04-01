@@ -25,6 +25,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/views/screens/
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/account_ready_screen.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/screens/lets_know_you_more_screen.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/screens/ride_screen.dart';
+import 'package:ridenowappsss/modules/ride/presentation/views/screens/my_rides_screen.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/screens/wallet_screen.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/analytics_screen.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/plans_screen.dart';
@@ -638,6 +639,30 @@ class AppRouter {
           return CustomTransitionPage(
             key: state.pageKey,
             child: const DriverVerificationPortalScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(
+                opacity: CurveTween(
+                  curve: Curves.easeInOutCirc,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/myRides',
+        name: RouteConstants.myRides,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const MyRidesScreen(),
             transitionsBuilder: (
               context,
               animation,

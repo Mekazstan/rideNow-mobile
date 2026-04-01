@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:ridenowappsss/core/services/location_service.dart';
@@ -7,10 +7,14 @@ import 'package:ridenowappsss/core/storage/local_storage.dart';
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 import 'package:ridenowappsss/core/utils/helpers/marker_manager.dart';
 import 'package:ridenowappsss/core/utils/helpers/polyline_decoder.dart';
+import 'package:ridenowappsss/modules/ride/data/data_sources/driver_remote_data_source.dart';
 import 'package:ridenowappsss/modules/ride/data/data_sources/places_remote_data_source.dart';
+import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.dart';
 import 'package:ridenowappsss/modules/ride/data/repositories/places_repository.dart';
+import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
 import 'package:ridenowappsss/core/storage/ride_persistence.dart';
+import 'package:ridenowappsss/core/services/socket_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -29,6 +33,9 @@ void setupServiceLocator() {
 
   // Network Service (DioClient) - DioClient creates its own Dio instance internally
   getIt.registerLazySingleton<DioClient>(() => DioClient());
+  
+  // Real-time Service
+  getIt.registerLazySingleton<SocketService>(() => SocketService());
 
   // Register Dio instance from DioClient
   getIt.registerLazySingleton<Dio>(() => getIt<DioClient>().dio);
@@ -41,6 +48,12 @@ void setupServiceLocator() {
       baseUrl: ApiConstants.baseUrl,
     ),
   );
+  
+  getIt.registerLazySingleton<DriverRemoteDataSource>(
+    () => DriverRemoteDataSourceImpl(
+      storageService: getIt<SecureStorageService>(),
+    ),
+  );
 
   // Utilities
   getIt.registerLazySingleton<PolylineDecoder>(() => PolylineDecoderImpl());
@@ -51,6 +64,12 @@ void setupServiceLocator() {
       remoteDataSource: getIt<PlacesRemoteDataSource>(),
       dioClient: getIt<DioClient>(),
       polylineDecoder: getIt<PolylineDecoder>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<DriverRepository>(
+    () => DriverRepositoryImpl(
+      remoteDataSource: getIt<DriverRemoteDataSource>(),
     ),
   );
 
@@ -67,6 +86,14 @@ void setupServiceLocator() {
       placesRepository: getIt<PlacesRepository>(),
       markerManager: getIt<MarkerManager>(),
       persistenceService: getIt<RidePersistenceService>(),
+    ),
+  );
+
+  getIt.registerFactory<DriverProvider>(
+    () => DriverProvider(
+      repository: getIt<DriverRepository>(),
+      locationService: getIt<LocationService>(),
+      placesRepository: getIt<PlacesRepository>(),
     ),
   );
 }

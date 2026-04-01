@@ -12,6 +12,9 @@ import 'package:ridenowappsss/modules/ride/data/models/ride_request_model.dart';
 import 'package:ridenowappsss/modules/ride/data/models/route_model.dart';
 import 'dart:async';
 import 'package:ridenowappsss/core/storage/ride_persistence.dart';
+import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart';
+import 'package:ridenowappsss/core/services/socket_service.dart';
+import 'package:ridenowappsss/core/services/service_locator.dart';
 
 enum RideStage {
   initial,
@@ -23,6 +26,7 @@ enum RideStage {
   driverArrived,
   inProgress,
   completed,
+  cancelled,
 }
 
 class RideProvider extends ChangeNotifier {
@@ -63,15 +67,17 @@ class RideProvider extends ChangeNotifier {
   RideStage _rideStage = RideStage.initial;
   DriverStatusResponse? _driverStatus;
   RideCodeResponse? _rideCode;
-  Timer? _trackingTimer;
-  Timer? _offersTimer;
   String? _rideOtp;
+  bool _isFirstLocationUpdate = true;
+  StreamSubscription<LocationModel>? _locationSubscription;
 
   List<PlacePrediction> _pickupSuggestions = [];
   List<PlacePrediction> _destinationSuggestions = [];
 
   List<AvailableDriver> _availableDrivers = [];
   List<CounterOffer> _counterOffers = [];
+  List<RideHistoryItem> _rideHistory = [];
+  List<ChatMessage> _chatMessages = [];
 
   bool _isInitializing = true;
   bool _isLoadingLocation = true;
@@ -83,6 +89,8 @@ class RideProvider extends ChangeNotifier {
   bool _isCreatingRide = false;
   bool _isLoadingDrivers = false;
   bool _isLoadingOffers = false;
+  bool _isRideDetailVisible = true;
+  bool _isLoadingChat = false;
 
   Set<Polyline> _polylines = {};
 
@@ -95,6 +103,12 @@ class RideProvider extends ChangeNotifier {
   String? get currentRideId => _currentRideId;
   RideDetails? get rideDetails => _rideDetails;
   String? get userProfilePhoto => _userProfilePhoto;
+
+  bool get isRideDetailVisible => _isRideDetailVisible;
+  bool get isRideActive =>
+      _rideStage != RideStage.initial &&
+      _rideStage != RideStage.completed &&
+      _rideStage != RideStage.cancelled;
 
   RideStage get rideStage => _rideStage;
   DriverStatusResponse? get driverStatus => _driverStatus;
@@ -116,6 +130,7 @@ class RideProvider extends ChangeNotifier {
 
   List<AvailableDriver> get availableDrivers => _availableDrivers;
   List<CounterOffer> get counterOffers => _counterOffers;
+  List<RideHistoryItem> get rideHistory => _rideHistory;
 
   bool get isInitializing => _isInitializing;
   bool get isLoadingLocation => _isLoadingLocation;
@@ -127,9 +142,17 @@ class RideProvider extends ChangeNotifier {
   bool get isCreatingRide => _isCreatingRide;
   bool get isLoadingDrivers => _isLoadingDrivers;
   bool get isLoadingOffers => _isLoadingOffers;
+  bool get isLoadingChat => _isLoadingChat;
+  List<ChatMessage> get chatMessages => _chatMessages;
 
   Set<Marker> get markers => _markerManager.markers;
   Set<Polyline> get polylines => _polylines;
+
+  void setRideDetailVisible(bool visible) {
+    if (_isRideDetailVisible == visible) return;
+    _isRideDetailVisible = visible;
+    notifyListeners();
+  }
 
   bool get canShowRoute =>
       _pickupLocation != null && _destinationLocation != null;
@@ -146,6 +169,7 @@ class RideProvider extends ChangeNotifier {
     notifyListeners();
 
     await _loadCurrentLocation(silent: true);
+    _startLocationUpdates();
 
     // Check for persisted state
     final persisted = await _persistenceService.getPersistedState();
@@ -181,7 +205,7 @@ class RideProvider extends ChangeNotifier {
       if (_rideStage == RideStage.driverOnWay ||
           _rideStage == RideStage.driverArrived ||
           _rideStage == RideStage.inProgress) {
-        startTrackingDriver();
+        _setupSocketListeners();
         fetchRideDetails();
       }
     } else {
@@ -197,6 +221,105 @@ class RideProvider extends ChangeNotifier {
 
     _isInitializing = false;
     notifyListeners();
+
+    // Secondary check: Fetch active ride from backend to ensure synchronization
+    await restoreActiveRide();
+  }
+
+  Future<void> restoreActiveRide() async {
+    try {
+      final activeRide = await _placesRepository.getActiveRide();
+      if (activeRide != null) {
+        debugPrint('[RIDE_RESTORE] Active ride found on backend: ${activeRide.id}');
+        
+        // If we don't have a current ride or it's different, sync with backend
+        if (_currentRideId != activeRide.id) {
+          _currentRideId = activeRide.id;
+          _rideDetails = activeRide;
+          
+          // Map backend status to UI stage
+          _rideStage = _mapApiStatusToStage(activeRide.status);
+          
+          _pickupLocation = LocationModel(
+            latitude: activeRide.pickupLocation.lat,
+            longitude: activeRide.pickupLocation.lng,
+            address: activeRide.pickupLocation.address,
+          );
+          
+          _destinationLocation = LocationModel(
+            latitude: activeRide.destination.lat,
+            longitude: activeRide.destination.lng,
+            address: activeRide.destination.address,
+          );
+
+          if (activeRide.driver != null) {
+            _bookedDriverName = activeRide.driver!.name;
+            _bookedDriverRating = activeRide.driver!.rating;
+            _bookedDriverPhoto = activeRide.driver!.profileImage;
+            _bookedDriverEta = '--';
+          }
+
+          if (activeRide.vehicle != null) {
+            _bookedCarModel = '${activeRide.vehicle!.model} ${activeRide.vehicle!.color}';
+            _bookedPlateNumber = activeRide.vehicle!.plateNumber;
+          }
+
+          // Restore markers and route
+          _markerManager.updatePickupMarker(
+            _pickupLocation!,
+            profilePhotoUrl: _userProfilePhoto,
+          );
+          _markerManager.addDestinationMarker(_destinationLocation!);
+          await _tryDrawRoute();
+
+          // Resume tracking if needed
+          if (isRideActive) {
+            _setupSocketListeners();
+          }
+          
+          _persistState();
+          notifyListeners();
+        }
+      } else {
+        if (_currentRideId != null) {
+          debugPrint('[RIDE_RESTORE] Backend reports no active ride. Resetting local state.');
+          reset();
+          await _loadCurrentLocation();
+        }
+      }
+    } catch (e) {
+      debugPrint('[RIDE_RESTORE] Error restoring active ride: $e');
+    }
+  }
+
+  RideStage _mapApiStatusToStage(String status) {
+    switch (status) {
+      case 'searching_driver':
+        return RideStage.searchingDrivers;
+      case 'driver_assigned':
+      case 'driver_en_route':
+        return RideStage.driverOnWay;
+      case 'arrived':
+        return RideStage.driverArrived;
+      case 'in_progress':
+        return RideStage.inProgress;
+      case 'completed':
+        return RideStage.completed;
+      case 'cancelled':
+        return RideStage.cancelled;
+      default:
+        return RideStage.initial;
+    }
+  }
+
+  Future<void> fetchRideHistory() async {
+    try {
+      final response = await _placesRepository.getRiderHistory();
+      _rideHistory = response.rides;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error fetching ride history: $e');
+    }
   }
 
   Future<void> _persistState() async {
@@ -307,6 +430,35 @@ class RideProvider extends ChangeNotifier {
 
   void onCameraMove(CameraPosition position) {
     _cameraPosition = position;
+    // If the user manually moves the map, stop auto-centering on current location
+    if (_isFirstLocationUpdate) {
+      _isFirstLocationUpdate = false;
+      debugPrint('[MAP] User moved camera, auto-center disabled');
+    }
+  }
+
+  void _startLocationUpdates() {
+    _locationSubscription?.cancel();
+    _isFirstLocationUpdate = true;
+    
+    _locationSubscription = _locationService.getLocationStream().listen((location) {
+      _currentLocation = location;
+      
+      // Update the user location marker on the map
+      _markerManager.updatePickupMarker(
+        location,
+        profilePhotoUrl: _userProfilePhoto,
+      );
+
+      // Auto-center camera ONLY if it's the first update or we want to follow (during initial load)
+      if (_isFirstLocationUpdate) {
+        _animateCameraToCurrentLocation();
+      }
+
+      notifyListeners();
+    }, onError: (error) {
+      debugPrint('[LOCATION] Stream error: $error');
+    });
   }
 
   void setUserProfilePhoto(String? photoUrl) {
@@ -571,8 +723,11 @@ class RideProvider extends ChangeNotifier {
 
     // If tracking driver, include driver position in bounds
     LatLng? driverPos;
-    if (_driverStatus?.driverLat != null && _driverStatus?.driverLng != null) {
-      driverPos = LatLng(_driverStatus!.driverLat!, _driverStatus!.driverLng!);
+    if (_driverStatus != null) {
+      driverPos = LatLng(
+        _driverStatus!.data.location.latitude,
+        _driverStatus!.data.location.longitude,
+      );
     }
 
     // Calculate bounds including all relevant points
@@ -739,6 +894,14 @@ class RideProvider extends ChangeNotifier {
     if (_currentRideId == null) return;
     try {
       final details = await _placesRepository.getRideDetails(_currentRideId!);
+      
+      if (details?.status == 'cancelled') {
+        debugPrint('[RIDE_DETAILS] Ride was cancelled by the system. Resetting.');
+        reset();
+        await _loadCurrentLocation();
+        return;
+      }
+      
       _rideDetails = details;
       notifyListeners();
       debugPrint('✅ Ride details loaded for: $_currentRideId');
@@ -796,7 +959,7 @@ class RideProvider extends ChangeNotifier {
       notifyListeners();
       await fetchRideDetails();
       fitCameraToBounds();
-      startTrackingDriver();
+      _setupSocketListeners();
       _persistState();
     } catch (e) {
       debugPrint('❌ Error booking driver: $e');
@@ -835,18 +998,12 @@ class RideProvider extends ChangeNotifier {
 
   // OFFERS POLLING & ACTIONS
   void startPollingOffers() {
-    _offersTimer?.cancel();
-    debugPrint('🔄 Starting offers polling (every 30s)...');
-    _offersTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      fetchAvailableDrivers();
-      fetchCounterOffers();
-    });
+    _setupSocketListeners();
   }
 
   void stopPollingOffers() {
     debugPrint('🛑 Stopping offers polling');
-    _offersTimer?.cancel();
-    _offersTimer = null;
+    _cleanupSocketListeners();
   }
 
   Future<void> acceptCounterOffer(String offerId) async {
@@ -881,7 +1038,7 @@ class RideProvider extends ChangeNotifier {
 
       fitCameraToBounds();
 
-      startTrackingDriver();
+      _setupSocketListeners();
       _persistState();
     } catch (e) {
       debugPrint('❌ Error accepting offer: $e');
@@ -930,61 +1087,72 @@ class RideProvider extends ChangeNotifier {
 
   // TRACKING METHODS
   void startTrackingDriver() {
-    debugPrint('🚀 Starting driver tracking...');
-    _trackingTimer?.cancel();
+    _setupSocketListeners();
+  }
 
-    // Immediate check
-    _checkDriverStatus();
+  void _setupSocketListeners() {
+    final socketService = getIt<SocketService>();
+    if (_currentRideId == null) return;
 
-    // Poll every 10 seconds (or 5)
-    _trackingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _checkDriverStatus();
+    debugPrint('🔌 Setting up socket listeners for ride: $_currentRideId');
+    
+    // Join ride-specific room
+    socketService.emit('join_ride', {'rideId': _currentRideId});
+
+    // Ride Status Updates
+    socketService.on('ride_status_update', (data) {
+      debugPrint('📡 Socket: Ride status updated: $data');
+      if (data is Map<String, dynamic> && data['status'] != null) {
+        final newStage = _mapApiStatusToStage(data['status']);
+        
+        if (newStage != _rideStage) {
+          _rideStage = newStage;
+          notifyListeners();
+          fetchRideDetails(); // Refresh details to get latest markers/driver info
+          
+          if (newStage == RideStage.driverArrived && _rideOtp == null) {
+            _fetchRideCode();
+          }
+        }
+      }
+    });
+
+    // Driver Location Updates
+    socketService.on('driver_location_update', (data) {
+      if (data is Map<String, dynamic>) {
+        final lat = (data['lat'] as num).toDouble();
+        final lng = (data['lng'] as num).toDouble();
+        debugPrint('📡 Socket: Driver location: $lat, $lng');
+        _markerManager.updateDriverMarker(
+          LatLng(lat, lng),
+          photoUrl: _rideDetails?.driver?.profileImage,
+        );
+        notifyListeners();
+      }
+    });
+
+    // New Counter Offers
+    socketService.on('new_counter_offer', (data) {
+      debugPrint('📡 Socket: New counter offer received');
+      fetchCounterOffers();
+    });
+
+    // New Chat Messages
+    socketService.on('new_message', (data) {
+      debugPrint('📡 Socket: New message received');
+      fetchChatHistory();
     });
   }
 
-  Future<void> _checkDriverStatus() async {
-    if (_currentRideId == null) return;
-
-    try {
-      final statusResponse = await _placesRepository.getDriverStatus(
-        _currentRideId!,
-      );
-      _driverStatus = statusResponse;
-
-      debugPrint(
-        '🚕 Driver Status: ${statusResponse.status}, ETA: ${statusResponse.eta}',
-      );
-
-      if (statusResponse.status.toLowerCase().contains('way') ||
-          statusResponse.status == 'accepted') {
-        _rideStage = RideStage.driverOnWay;
-      } else if (statusResponse.status.toLowerCase().contains('arrived')) {
-        _rideStage = RideStage.driverArrived;
-        if (_rideCode == null) {
-          _fetchRideCode();
-        }
-      }
-
-      // Update driver position on map if available
-      if (statusResponse.driverLat != null &&
-          statusResponse.driverLng != null) {
-        await _markerManager.updateDriverMarker(
-          LatLng(statusResponse.driverLat!, statusResponse.driverLng!),
-          photoUrl: _rideDetails?.driver?.profileImage,
-          eta: statusResponse.eta,
-        );
-
-        // Fit camera to show rider, driver, and route
-        fitCameraToBounds();
-      }
-
-      // Schedule notifyListeners after the current frame to avoid setState during build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        notifyListeners();
-      });
-    } catch (e) {
-      debugPrint('⚠️ Error tracking driver: $e');
+  void _cleanupSocketListeners() {
+    final socketService = getIt<SocketService>();
+    if (_currentRideId != null) {
+      socketService.emit('leave_ride', {'rideId': _currentRideId});
     }
+    socketService.off('ride_status_update');
+    socketService.off('driver_location_update');
+    socketService.off('new_counter_offer');
+    socketService.off('new_message');
   }
 
   Future<void> _fetchRideCode() async {
@@ -1001,8 +1169,7 @@ class RideProvider extends ChangeNotifier {
   }
 
   void stopTracking() {
-    _trackingTimer?.cancel();
-    _trackingTimer = null;
+    _cleanupSocketListeners();
   }
 
   void _clearInMemoryState() {
@@ -1017,6 +1184,7 @@ class RideProvider extends ChangeNotifier {
     _rideOtp = null;
     _polylines.clear();
     _markerManager.clearMarkers();
+    _chatMessages.clear();
     stopTracking();
     stopPollingOffers();
   }
@@ -1038,10 +1206,69 @@ class RideProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> acceptOffer(CounterOffer offer) async {
+    if (_currentRideId == null) return;
+    try {
+      await _placesRepository.acceptCounterOffer(_currentRideId!, offer.offerId);
+      fetchRideDetails();
+    } catch (e) {
+      debugPrint('❌ Error accepting offer: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> declineOffer(CounterOffer offer) async {
+    if (_currentRideId == null) return;
+    try {
+      await _placesRepository.declineCounterOffer(_currentRideId!, offer.offerId);
+      _counterOffers.removeWhere((o) => o.offerId == offer.offerId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error declining offer: $e');
+      rethrow;
+    }
+  }
+
+  // CHAT METHODS
+  Future<void> fetchChatHistory() async {
+    if (_currentRideId == null) return;
+
+    _isLoadingChat = true;
+    notifyListeners();
+
+    try {
+      final response = await _placesRepository.getChatHistory(_currentRideId!);
+      _chatMessages = response.messages;
+      _isLoadingChat = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error fetching chat: $e');
+      _isLoadingChat = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> sendMessage(String text) async {
+    if (_currentRideId == null) return false;
+
+    try {
+      final response = await _placesRepository.sendMessage(_currentRideId!, text);
+      if (response.success) {
+        // Optimistically add to list or just refetch
+        await fetchChatHistory();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error sending message: $e');
+      return false;
+    }
+  }
   @override
   void dispose() {
     stopTracking();
     stopPollingOffers();
+    _locationSubscription?.cancel();
     _placesRepository.cancelPendingRequests();
     super.dispose();
   }

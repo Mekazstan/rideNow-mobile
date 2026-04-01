@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/drivers_offers_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class RideConfirmationSheet {
   static void show(
@@ -213,7 +214,7 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
               children: [
                 // Ride Amount Section
                 Text(
-                  'Your Ride is â‚¦${widget.rideAmount}',
+                  'Your Ride is ${widget.rideAmount.formatAmountWithCurrency()}',
                   style: widget.appFonts.textBaseMedium.copyWith(
                     color: widget.appColors.textPrimary,
                     fontSize: 18.sp,
@@ -226,10 +227,8 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
                 // Wallet Balance Card
                 Consumer<WalletProvider>(
                   builder: (context, walletProvider, _) {
-                    final balance =
-                        double.tryParse(walletProvider.formattedBalance) ?? 0.0;
-                    final rideAmountValue =
-                        double.tryParse(widget.rideAmount) ?? 0.0;
+                    final balance = walletProvider.walletBalance?.balance ?? 0.0;
+                    final rideAmountValue = widget.rideAmount.toNumber();
                     final hasInsufficientBalance = balance < rideAmountValue;
 
                     return Container(
@@ -264,7 +263,7 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
                           ),
                           SizedBox(height: 8.h),
                           Text(
-                            'â‚¦${walletProvider.formattedBalance}',
+                            walletProvider.formattedBalance.formatAmountWithCurrency(),
                             style: widget.appFonts.textBaseMedium.copyWith(
                               color:
                                   hasInsufficientBalance
@@ -296,10 +295,8 @@ class _RideConfirmationContentState extends State<_RideConfirmationContent> {
                 // Action Buttons
                 Consumer<WalletProvider>(
                   builder: (context, walletProvider, _) {
-                    final balance =
-                        double.tryParse(walletProvider.formattedBalance) ?? 0.0;
-                    final rideAmountValue =
-                        double.tryParse(widget.rideAmount) ?? 0.0;
+                    final balance = walletProvider.walletBalance?.balance ?? 0.0;
+                    final rideAmountValue = widget.rideAmount.toNumber();
                     final hasInsufficientBalance = balance < rideAmountValue;
 
                     return Row(

@@ -8,7 +8,7 @@ import 'package:ridenowappsss/modules/ride/data/models/driver_ride_request.dart'
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 
 class DriverSideInProgressSheet extends StatelessWidget {
-  final RideRequest ride;
+  final AcceptRideResponse ride;
   final VoidCallback onCompleteRide;
   final VoidCallback onCall;
   final VoidCallback onChat;
@@ -54,7 +54,7 @@ class DriverSideInProgressSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _buildAvatar(ride.riderImage, appColors),
+                    _buildAvatar(ride.rideDetails?.riderImage, appColors),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Column(
@@ -71,7 +71,7 @@ class DriverSideInProgressSheet extends StatelessWidget {
                             children: [
                               Flexible(
                                 child: Text(
-                                  ride.riderName,
+                                  ride.rideDetails?.riderName ?? 'Rider',
                                   style: appFonts.textSmMedium.copyWith(
                                     color: appColors.textPrimary,
                                     fontSize: 16.sp,
@@ -81,7 +81,7 @@ class DriverSideInProgressSheet extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(width: 8.w),
-                              _buildRatingBadge(4.9, appColors),
+                              _buildRatingBadge(ride.rideDetails?.riderRating ?? 4.9, appColors),
                             ],
                           ),
                         ],
@@ -135,7 +135,13 @@ class DriverSideInProgressSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.r),
         child:
             imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(imageUrl, fit: BoxFit.cover)
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.person, color: Colors.white, size: 28.sp);
+                    },
+                  )
                 : Icon(Icons.person, color: Colors.white, size: 28.sp),
       ),
     );
@@ -212,14 +218,14 @@ class DriverSideInProgressSheet extends StatelessWidget {
       children: [
         _buildDetailItem(
           'Destination',
-          ride.destinationLocation,
+          ride.rideDetails?.destinationLocation ?? '',
           appColors,
           appFonts,
         ),
         SizedBox(height: 12.h),
         _buildDetailItem(
           'Estimated Fare',
-          'N${ride.estimatedFare.toInt()}',
+          'N${ride.rideDetails?.estimatedFare.toInt() ?? 0}',
           appColors,
           appFonts,
         ),

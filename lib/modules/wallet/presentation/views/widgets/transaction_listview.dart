@@ -167,18 +167,52 @@ class TransactionsListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
+    final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
     final grouped = provider.groupedTransactions;
+    final totalItems = _calculateTotalItems(grouped);
+
+    // Show button/spinner if there are more pages
+    final showLoadMore = provider.hasMorePages;
 
     return ListView.builder(
       controller: scrollController,
-      itemCount:
-          _calculateTotalItems(grouped) + (provider.isLoadingMore ? 1 : 0),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: totalItems + (showLoadMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _calculateTotalItems(grouped)) {
+        if (index == totalItems) {
           return Padding(
-            padding: EdgeInsets.all(16.h),
+            padding: EdgeInsets.symmetric(vertical: 24.h),
             child: Center(
-              child: CircularProgressIndicator(color: appColors.blue600),
+              child: provider.isLoadingMore
+                  ? SizedBox(
+                      height: 24.h,
+                      width: 24.w,
+                      child: CircularProgressIndicator(
+                        color: appColors.blue600,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: () => provider.loadMoreTransactions(),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.w,
+                          vertical: 12.h,
+                        ),
+                        backgroundColor: appColors.blue600.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+                      child: Text(
+                        'Load More',
+                        style: appFonts.textSmMedium.copyWith(
+                          color: appColors.blue600,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
             ),
           );
         }

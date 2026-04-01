@@ -95,6 +95,9 @@ class NearbyDriversSheet extends StatelessWidget {
                           driver.imageUrl != null
                               ? NetworkImage(driver.imageUrl!)
                               : null,
+                      onBackgroundImageError: driver.imageUrl != null 
+                          ? (exception, stackTrace) {} 
+                          : null,
                       child:
                           driver.imageUrl == null
                               ? const Icon(Icons.person)

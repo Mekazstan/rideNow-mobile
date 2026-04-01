@@ -8,6 +8,7 @@ import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class AccountNumberGenerator extends StatefulWidget {
   const AccountNumberGenerator({super.key});
@@ -67,7 +68,7 @@ class _AccountNumberGeneratorState extends State<AccountNumberGenerator> {
                   Row(
                     children: [
                       Text(
-                        'N5,500',
+                        5500.0.formatAmountWithCurrency(),
                         style: appFonts.textSmMedium.copyWith(
                           color: appColors.blue500,
                           fontSize: 14.sp,
@@ -123,7 +124,7 @@ class _AccountNumberGeneratorState extends State<AccountNumberGenerator> {
                   Row(
                     children: [
                       Text(
-                        'N5,500',
+                        '0123456789',
                         style: appFonts.textSmMedium.copyWith(
                           color: appColors.blue500,
                           fontSize: 14.sp,

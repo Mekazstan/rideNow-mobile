@@ -21,31 +21,31 @@ class _VehicleSelectionWidgetState extends State<VehicleSelectionWidget> {
       type: VehicleType.standard,
       title: 'Standard Ride',
       subtitle: 'Comfort and affordability',
-      icon: 'assets/standard.svg',
+      icon: 'assets/standardride.png',
     ),
     VehicleOption(
       type: VehicleType.luxury,
       title: 'Luxury Vehicle',
       subtitle: 'Ride everywhere in style.',
-      icon: 'assets/luxury.svg',
+      icon: 'assets/luxury.png',
     ),
     VehicleOption(
       type: VehicleType.bike,
       title: 'Bikes',
       subtitle: 'Ride faster, in tight traffic',
-      icon: 'assets/bike.svg',
+      icon: 'assets/bike.png',
     ),
     VehicleOption(
       type: VehicleType.tricylce,
       title: 'Tricycle',
       subtitle: 'Ride with the wind',
-      icon: 'assets/tricycle.svg',
+      icon: 'assets/tricycle.png',
     ),
     VehicleOption(
       type: VehicleType.seaterbus,
       title: 'Seater Bus',
       subtitle: 'More space for more people.',
-      icon: 'assets/bus.svg',
+      icon: 'assets/seaterbus.png',
     ),
   ];
 
@@ -68,77 +68,94 @@ class _VehicleSelectionWidgetState extends State<VehicleSelectionWidget> {
               child: Padding(
                 padding: EdgeInsets.only(bottom: 16.h),
                 child: Container(
-                  height: 103.h,
                   width: double.infinity,
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: isSelected ? appColors.blue50 : Colors.transparent,
+                    color: isSelected ? appColors.blue50 : Colors.white,
                     borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(color: appColors.blue200),
+                    border: Border.all(
+                      color: isSelected ? appColors.blue600 : appColors.gray200,
+                      width: isSelected ? 2.w : 1.w,
+                    ),
+                    boxShadow: [
+                      if (isSelected) 
+                        BoxShadow(
+                          color: appColors.blue600.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                    ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 20.w,
-                            height: 20.h,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    isSelected
-                                        ? appColors.blue500
-                                        : appColors.gray300,
-                                width: 2.w,
+                      // Left Section: Radio and Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Radio Indicator
+                            Container(
+                              width: 20.w,
+                              height: 20.h,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? appColors.blue600
+                                      : appColors.gray300,
+                                  width: 2.w,
+                                ),
+                                color: Colors.transparent,
                               ),
-                              color: Colors.transparent,
-                            ),
-                            child:
-                                isSelected
-                                    ? Container(
-                                      margin: EdgeInsets.all(4.w),
+                              child: isSelected
+                                ? Center(
+                                    child: Container(
+                                      width: 10.w,
+                                      height: 10.h,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: appColors.blue500,
+                                        color: appColors.blue600,
                                       ),
-                                    )
-                                    : null,
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  vehicle.title,
-                                  style: appFonts.textSmMedium.copyWith(
-                                    color: appColors.textPrimary,
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  vehicle.subtitle,
-                                  style: appFonts.textSmMedium.copyWith(
-                                    color: appColors.textSecondary,
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w300,
-                                  ),
-                                ),
-                              ],
+                                    ),
+                                  )
+                                : null,
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 12.h),
+                            // Vehicle Info
+                            Text(
+                              vehicle.title,
+                              style: appFonts.textSmMedium.copyWith(
+                                color: appColors.textPrimary,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              vehicle.subtitle,
+                              style: appFonts.textSmMedium.copyWith(
+                                color: appColors.textSecondary,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Right Section: Image
+                      SizedBox(width: 12.w),
+                      SizedBox(
+                        width: 110.w,
+                        height: 70.h,
+                        child: vehicle.icon.endsWith('.svg')
+                          ? Image.asset(vehicle.icon) // Fallback for now if needed, though they are pngs
+                          : Image.asset(
+                              vehicle.icon,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(Icons.car_repair, size: 40.sp, color: appColors.gray300);
+                              },
+                            ),
                       ),
                     ],
                   ),

@@ -77,6 +77,9 @@ class WaitingForDriverSheet extends StatelessWidget {
                     rideDetails?.driver?.profileImage != null
                         ? NetworkImage(rideDetails!.driver!.profileImage!)
                         : null,
+                onBackgroundImageError: rideDetails?.driver?.profileImage != null 
+                    ? (exception, stackTrace) {} 
+                    : null,
                 child:
                     rideDetails?.driver?.profileImage == null
                         ? const Icon(Icons.person, color: Colors.grey)

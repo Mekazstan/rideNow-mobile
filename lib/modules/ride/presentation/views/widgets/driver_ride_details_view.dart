@@ -12,6 +12,7 @@ class RideDetailsView extends StatelessWidget {
   final String currentLocationName;
   final VoidCallback onBack;
   final VoidCallback onAccept;
+  final VoidCallback onCounterOffer;
 
   const RideDetailsView({
     super.key,
@@ -21,6 +22,7 @@ class RideDetailsView extends StatelessWidget {
     required this.currentLocationName,
     required this.onBack,
     required this.onAccept,
+    required this.onCounterOffer,
   });
 
   @override
@@ -37,6 +39,8 @@ class RideDetailsView extends StatelessWidget {
           _buildRideDetailsSection(),
           SizedBox(height: 24.h),
           _buildAcceptButton(),
+          SizedBox(height: 12.h),
+          _buildCounterOfferButton(),
           SizedBox(height: 20.h),
         ],
       ),
@@ -101,6 +105,7 @@ class RideDetailsView extends StatelessWidget {
                           ? DecorationImage(
                             image: NetworkImage(ride.riderImage),
                             fit: BoxFit.cover,
+                            onError: (exception, stackTrace) {},
                           )
                           : null,
                 ),
@@ -393,6 +398,38 @@ class RideDetailsView extends StatelessWidget {
           'Accept ride',
           style: appFonts.textSmMedium.copyWith(
             color: Colors.white,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCounterOfferButton() {
+    return Container(
+      width: double.infinity,
+      height: 52.h,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: appColors.gray200, width: 1.5),
+      ),
+      child: ElevatedButton(
+        onPressed: onCounterOffer,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          padding: EdgeInsets.zero,
+        ),
+        child: Text(
+          'Negotiate Fare',
+          style: appFonts.textSmMedium.copyWith(
+            color: appColors.textPrimary,
             fontSize: 16.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.2,

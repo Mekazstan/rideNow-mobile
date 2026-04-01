@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
@@ -617,7 +618,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             ),
             SizedBox(height: 8.h),
             Text(
-              'Amount: ₦${widget.amount.toStringAsFixed(2)}',
+              'Amount: ${widget.amount.formatAmountWithCurrency()}',
               style: appFonts.textSmMedium.copyWith(
                 color: appColors.pink500,
                 fontSize: 16.sp,

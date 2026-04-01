@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class RideRequestsQuery {
   final String location;
@@ -124,12 +125,14 @@ class RideRequest {
   final DateTime requestedAt;
   final String vehicleType;
   final int etaMinutes;
+  final String? riderPhoneNumber;
   final String? _additionalNotes;
 
   RideRequest({
     required this.rideId,
     required this.riderName,
     this.riderPhoto,
+    this.riderPhoneNumber,
     required LocationModelDriver pickupLocation,
     required LocationModelDriver destination,
     required this.fare,
@@ -192,6 +195,7 @@ class RideRequest {
       vehicleType: json['vehicle_type'] as String? ?? 'standard',
       etaMinutes: json['eta_minutes'] as int? ?? 0,
       additionalNotes: json['additional_notes'] as String?,
+      riderPhoneNumber: json['rider_phone'] as String? ?? json['rider_phone_number'] as String?,
     );
   }
 
@@ -206,8 +210,7 @@ class RideRequest {
   }
 
   String getFormattedFare() {
-    final formatter = NumberFormat.currency(symbol: '₦', decimalDigits: 2);
-    return formatter.format(fare);
+    return fare.formatAmountWithCurrency();
   }
 
   String getTimeSinceCreated() {
@@ -284,8 +287,17 @@ class Coordinates {
 class AcceptRideRequest {
   final String rideId;
   final double? proposedFare;
+  final double? driverLat;
+  final double? driverLng;
+  final int? estimatedArrivalMinutes;
 
-  AcceptRideRequest({required this.rideId, this.proposedFare});
+  AcceptRideRequest({
+    required this.rideId,
+    this.proposedFare,
+    this.driverLat,
+    this.driverLng,
+    this.estimatedArrivalMinutes,
+  });
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{'ride_id': rideId};
@@ -301,18 +313,30 @@ class AcceptRideResponse {
   final String message;
   final String rideId;
   final String? status;
+  final RideRequest? rideDetails;
+  final bool success;
 
   AcceptRideResponse({
     required this.message,
     required this.rideId,
     this.status,
+    this.rideDetails,
+    this.success = true,
   });
 
   factory AcceptRideResponse.fromJson(Map<String, dynamic> json) {
+    // NestJS can return message as either a String or a List<String>
+    final rawMessage = json['message'];
+    final message = rawMessage is List
+        ? (rawMessage as List<dynamic>).join(', ')
+        : rawMessage as String? ?? 'Ride accepted';
+
     return AcceptRideResponse(
-      message: json['message'] as String? ?? 'Ride accepted',
+      message: message,
       rideId: json['ride_id'] as String? ?? json['rideId'] as String? ?? '',
       status: json['status'] as String?,
+      success: json['success'] as bool? ?? true,
+      rideDetails: json['ride'] != null ? RideRequest.fromJson(json['ride']) : null,
     );
   }
 }

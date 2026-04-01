@@ -9,7 +9,7 @@ import 'package:ridenowappsss/modules/authentication/presentation/views/widgets/
 import 'package:ridenowappsss/shared/widgets/ridenow_button.dart';
 
 class DriverSideAtPickupSheet extends StatefulWidget {
-  final RideRequest ride;
+  final AcceptRideResponse ride;
   final Function(String) onStartRide;
   final VoidCallback onCall;
   final VoidCallback onChat;
@@ -78,7 +78,7 @@ class _DriverSideAtPickupSheetState extends State<DriverSideAtPickupSheet> {
               children: [
                 Row(
                   children: [
-                    _buildAvatar(widget.ride.riderImage, appColors),
+                    _buildAvatar(widget.ride.rideDetails?.riderImage, appColors),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Column(
@@ -95,7 +95,7 @@ class _DriverSideAtPickupSheetState extends State<DriverSideAtPickupSheet> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  widget.ride.riderName,
+                                  widget.ride.rideDetails?.riderName ?? 'Rider',
                                   style: appFonts.textSmMedium.copyWith(
                                     color: appColors.textPrimary,
                                     fontSize: 16.sp,
@@ -187,7 +187,13 @@ class _DriverSideAtPickupSheetState extends State<DriverSideAtPickupSheet> {
         borderRadius: BorderRadius.circular(8.r),
         child:
             imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(imageUrl, fit: BoxFit.cover)
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.person, color: Colors.white, size: 28.sp);
+                    },
+                  )
                 : Icon(Icons.person, color: Colors.white, size: 28.sp),
       ),
     );

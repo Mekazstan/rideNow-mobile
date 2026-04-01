@@ -31,4 +31,5 @@ class RouteConstants {
   static const String privacyPolicy = 'privacyPolicy';
   static const String termsAndConditions = 'termsAndConditions';
   static const String driverVerificationPortal = 'driverVerificationPortal';
+  static const String myRides = 'myRides';
 }

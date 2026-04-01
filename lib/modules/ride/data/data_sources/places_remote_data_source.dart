@@ -8,6 +8,7 @@ import 'package:ridenowappsss/modules/ride/data/models/available_drvers.dart';
 import 'package:ridenowappsss/modules/ride/data/models/place_details.dart';
 import 'package:ridenowappsss/modules/ride/data/models/place_prediction.dart';
 import 'package:ridenowappsss/modules/ride/data/models/ride_request_model.dart';
+import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart';
 
 abstract class PlacesRemoteDataSource {
   Future<List<PlacePrediction>> getPredictions(
@@ -47,9 +48,15 @@ abstract class PlacesRemoteDataSource {
 
   Future<void> declineCounterOffer(String rideId, String offerId);
 
-  Future<void> cancelRide(String rideId);
+  Future<void> cancelRide(String rideId, {String? reason, String? otherReason});
+  Future<AutoAcceptNearestResponse> autoAcceptNearestRide(String rideId, int maxWaitMinutes);
 
   Future<PlaceDetails?> reverseGeocode(double lat, double lng);
+
+  Future<RideHistoryResponse> getRiderHistory();
+  Future<RideDetails?> getActiveRide();
+  Future<ChatHistoryResponse> getChatHistory(String rideId);
+  Future<SendMessageResponse> sendMessage(String rideId, String message);
 }
 
 class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
@@ -240,8 +247,17 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
         return CreateRideResponse.fromJson(data);
       } else {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
-        final errorMessage =
-            errorData?['message'] as String? ?? 'Failed to create ride';
+        final rawMessage = errorData?['message'];
+        String errorMessage;
+
+        if (rawMessage is List) {
+          errorMessage = rawMessage.join(', ');
+        } else if (rawMessage is String) {
+          errorMessage = rawMessage;
+        } else {
+          errorMessage = 'Failed to create ride';
+        }
+
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -596,7 +612,7 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
   }
 
   @override
-  Future<void> cancelRide(String rideId) async {
+  Future<void> cancelRide(String rideId, {String? reason, String? otherReason}) async {
     try {
       final token = await _storageService.getAuthToken();
       final response = await _client.post(
@@ -605,7 +621,11 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'ride_id': rideId}),
+        body: jsonEncode({
+          'ride_id': rideId,
+          'cancel_reason': reason,
+          'other_reason': otherReason,
+        }),
       );
 
       if (response.statusCode != 200) {
@@ -613,6 +633,151 @@ class PlacesRemoteDataSourceImpl implements PlacesRemoteDataSource {
       }
     } catch (e) {
       debugPrint('❌ RemoteDataSource: Error cancelling ride: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<AutoAcceptNearestResponse> autoAcceptNearestRide(String rideId, int maxWaitMinutes) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/rides/$rideId/auto-accept'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'max_wait_minutes': maxWaitMinutes}),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return AutoAcceptNearestResponse.fromJson(data);
+      } else {
+        return AutoAcceptNearestResponse(
+          success: false,
+          message: 'Failed to auto-accept: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      return AutoAcceptNearestResponse(
+        success: false,
+        message: 'Error auto-accepting: $e',
+      );
+    }
+  }
+
+  @override
+  Future<RideHistoryResponse> getRiderHistory() async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.getRiderHistoryEndpoint}');
+      final response = await _client
+          .get(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return compute(_parseRideHistory, response.body);
+      } else {
+        throw Exception('Failed to fetch ride history');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching ride history: $e');
+      rethrow;
+    }
+  }
+
+  static RideHistoryResponse _parseRideHistory(String body) {
+    final data = json.decode(body);
+    return RideHistoryResponse.fromJson(data);
+  }
+
+  @override
+  Future<RideDetails?> getActiveRide() async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl${ApiConstants.getActiveRideEndpoint}');
+      final response = await _client
+          .get(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty || response.body == 'null') return null;
+        return compute(_parseRideDetails, response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error fetching active ride: $e');
+      return null;
+    }
+  }
+  @override
+  Future<ChatHistoryResponse> getChatHistory(String rideId) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      final endpoint = ApiConstants.getChatHistoryEndpoint.replaceAll('{rideId}', rideId);
+      final uri = Uri.parse('$_baseUrl$endpoint');
+
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ChatHistoryResponse.fromJson(data);
+      } else {
+        throw Exception('Failed to fetch chat history');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching chat history: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<SendMessageResponse> sendMessage(String rideId, String message) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      final endpoint = ApiConstants.sendMessageEndpoint.replaceAll('{rideId}', rideId);
+      final uri = Uri.parse('$_baseUrl$endpoint');
+
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'message': message}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return SendMessageResponse.fromJson(data);
+      } else {
+        throw Exception('Failed to send message');
+      }
+    } catch (e) {
+      debugPrint('❌ Error sending message: $e');
       rethrow;
     }
   }

@@ -9,6 +9,7 @@ import 'package:ridenowappsss/modules/authentication/data/models/emergency_conta
 import 'package:ridenowappsss/modules/authentication/domain/services/contact_services.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/emergency_contact_provider.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/views/widgets/contact_list_shimmer.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class ContactPickerBottomSheet extends StatefulWidget {
   const ContactPickerBottomSheet({super.key});
@@ -68,7 +69,7 @@ class _ContactPickerBottomSheetState extends State<ContactPickerBottomSheet> {
         _filteredContacts =
             _allContacts.where((contact) {
               return contact.name.toLowerCase().contains(query.toLowerCase()) ||
-                  contact.phoneNumber.contains(query);
+                  contact.phone.contains(query);
             }).toList();
       }
     });
@@ -218,7 +219,7 @@ class _ContactPickerBottomSheetState extends State<ContactPickerBottomSheet> {
                 ),
               ),
               subtitle: Text(
-                contact.phoneNumber,
+                contact.phone,
                 style: appFonts.textSmRegular.copyWith(
                   color: appColors.textSecondary,
                 ),

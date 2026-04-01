@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
+import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provider.dart';
 import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart'
     as api;
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  final bool isDriver;
+  const ChatScreen({super.key, this.isDriver = false});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -23,7 +25,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RideProvider>().fetchChatHistory();
+      if (widget.isDriver) {
+        context.read<DriverProvider>().fetchChatHistory();
+      } else {
+        context.read<RideProvider>().fetchChatHistory();
+      }
     });
   }
 
@@ -49,7 +55,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (message.isEmpty) return;
 
     _messageController.clear();
-    final success = await context.read<RideProvider>().sendMessage(message);
+    bool success = false;
+    if (widget.isDriver) {
+      success = await context.read<DriverProvider>().sendMessage(message);
+    } else {
+      success = await context.read<RideProvider>().sendMessage(message);
+    }
+    
     if (success) {
       _scrollToBottom();
     }
@@ -59,8 +71,25 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
-    final provider = context.watch<RideProvider>();
-    final driver = provider.rideDetails?.driver;
+    
+    final List<api.ChatMessage> messages;
+    final bool isLoading;
+    final String? participantName;
+    final String? participantPhoto;
+
+    if (widget.isDriver) {
+      final provider = context.watch<DriverProvider>();
+      messages = provider.chatMessages;
+      isLoading = provider.isLoadingChat;
+      participantName = provider.activeRide?.rideDetails?.riderName;
+      participantPhoto = provider.activeRide?.rideDetails?.riderPhoto;
+    } else {
+      final provider = context.watch<RideProvider>();
+      messages = provider.chatMessages;
+      isLoading = provider.isLoadingChat;
+      participantName = provider.rideDetails?.driver?.name;
+      participantPhoto = provider.rideDetails?.driver?.profileImage;
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -79,18 +108,18 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Driver Info Header
-          _buildDriverHeader(context, appColors, appFonts, driver),
+          // Participant Info Header
+          _buildParticipantHeader(context, appColors, appFonts, participantName, participantPhoto),
 
           Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
 
           // Messages List
           Expanded(
             child:
-                provider.isLoadingChat
+                isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _buildMessageList(
-                      provider.chatMessages,
+                      messages,
                       appColors,
                       appFonts,
                     ),
@@ -103,11 +132,12 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildDriverHeader(
+  Widget _buildParticipantHeader(
     BuildContext context,
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
-    dynamic driver,
+    String? name,
+    String? photo,
   ) {
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -120,9 +150,9 @@ class _ChatScreenState extends State<ChatScreen> {
               borderRadius: BorderRadius.circular(10.r),
               image: DecorationImage(
                 image:
-                    (driver?.profileImage != null &&
-                            driver.profileImage!.isNotEmpty)
-                        ? NetworkImage(driver.profileImage!) as ImageProvider
+                    (photo != null &&
+                            photo.isNotEmpty)
+                        ? NetworkImage(photo) as ImageProvider
                         : const AssetImage(
                           'assets/images/user_placeholder.png',
                         ),
@@ -136,30 +166,33 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Driver',
+                  widget.isDriver ? 'Rider' : 'Driver',
                   style: appFonts.textSmRegular.copyWith(color: Colors.grey),
                 ),
                 Row(
                   children: [
                     Text(
-                      driver?.name ?? 'Kelechi Eze',
+                      name ?? (widget.isDriver ? 'Rider' : 'Driver'),
                       style: appFonts.textBaseBold.copyWith(fontSize: 16.sp),
                     ),
-                    SizedBox(width: 4.w),
-                    Icon(Icons.star, color: Colors.green, size: 14.sp),
-                    SizedBox(width: 2.w),
-                    Text(
-                      '4.0',
-                      style: appFonts.textSmRegular.copyWith(
-                        fontWeight: FontWeight.bold,
+                    if (!widget.isDriver) ...[
+                      SizedBox(width: 4.w),
+                      Icon(Icons.star, color: Colors.green, size: 14.sp),
+                      SizedBox(width: 2.w),
+                      Text(
+                        '4.0',
+                        style: appFonts.textSmRegular.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                Text(
-                  'Nissan 16v 322 Machine',
-                  style: appFonts.textSmRegular.copyWith(color: Colors.grey),
-                ),
+                if (!widget.isDriver)
+                  Text(
+                    'Nissan 16v 322 Machine',
+                    style: appFonts.textSmRegular.copyWith(color: Colors.grey),
+                  ),
               ],
             ),
           ),
@@ -196,7 +229,7 @@ class _ChatScreenState extends State<ChatScreen> {
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
-        final isMe = message.senderType == 'rider';
+        final isMe = message.senderType == (widget.isDriver ? 'driver' : 'rider');
         final showTime =
             index == 0 ||
             message.timestamp

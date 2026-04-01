@@ -10,6 +10,7 @@ import 'package:ridenowappsss/modules/ride/presentation/providers/driver_provide
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_ride_details_view.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_ride_request_list_view.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_screenshimmer.dart';
+import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_counter_offer_sheet.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class RideRequestBottomSheet extends StatefulWidget {
@@ -138,6 +139,7 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
           currentLocationName: widget.currentLocationName,
           onBack: widget.onBackToList,
           onAccept: () => _handleAcceptRide(viewModel),
+          onCounterOffer: () => _handleCounterOffer(context, viewModel),
         ),
       ),
     ];
@@ -247,22 +249,51 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const DriverLoadingDialogShimmer(),
+      builder: (dialogContext) => const DriverLoadingDialogShimmer(),
     );
 
     final success = await viewModel.acceptRide(widget.selectedRide.id);
 
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.of(context, rootNavigator: true).pop();
 
     if (success) {
       ToastService.showSuccess('Ride accepted! Contact the rider.');
+      // Wait for dialog dismiss animation to fully complete before updating map constraints
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        widget.onBackToList();
+      }
     } else {
       ToastService.showError('Failed to accept ride: ${viewModel.errorMessage}');
     }
+  }
 
-    if (success) {
-      widget.onBackToList();
-    }
+  void _handleCounterOffer(BuildContext context, DriverProvider viewModel) {
+    if (widget.selectedRide == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DriverCounterOfferSheet(
+        currentFare: widget.selectedRide.fare.toDouble(),
+        onOfferSent: (newFare) async {
+          Navigator.pop(context);
+          
+          final success = await viewModel.acceptRide(
+            widget.selectedRide.id,
+            proposedFare: newFare,
+          );
+          
+          if (success && mounted) {
+            ToastService.showSuccess('Counter offer sent!');
+            widget.onBackToList();
+          } else if (!success && mounted) {
+            ToastService.showError(viewModel.errorMessage ?? 'Failed to send counter offer');
+          }
+        },
+      ),
+    );
   }
 }

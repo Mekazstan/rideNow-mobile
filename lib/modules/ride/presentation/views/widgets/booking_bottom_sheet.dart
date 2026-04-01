@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ridenowappsss/core/utils/enums/vehicle_type_enum.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class BookingBottomSheet extends StatefulWidget {
   final VehicleType selectedVehicle;
@@ -40,7 +41,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
   }
 
   void _onContinue() {
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = _amountController.text.toNumber();
     if (amount <= 0) {
       ToastService.showWarning('Please enter a valid amount');
       return;
@@ -71,7 +72,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
 
   Widget _buildAmountInputView() {
     final hasInsufficientBalance =
-        (double.tryParse(_amountController.text) ?? 0.0) > widget.walletBalance;
+        _amountController.text.toNumber() > widget.walletBalance;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -116,7 +117,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
                   color: const Color(0xFFE91E63),
                 ),
                 decoration: InputDecoration(
-                  prefixText: 'N',
+                  prefixText: '₦',
                   prefixStyle: TextStyle(
                     fontSize: 36.sp,
                     fontWeight: FontWeight.bold,
@@ -193,7 +194,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
                       const TextSpan(text: 'Accept the nearest driver for '),
                       TextSpan(
                         text:
-                            'N${_amountController.text.isEmpty ? "5000" : _amountController.text}',
+                            (_amountController.text.isEmpty ? "5000" : _amountController.text).formatAmountWithCurrency(),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(text: '\nautomatically.'),
@@ -260,7 +261,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
 
         // Title
         Text(
-          'Your Ride is N${_enteredAmount.toStringAsFixed(0)}',
+          'Your Ride is ${_enteredAmount.formatAmountWithCurrency()}',
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.w600,
@@ -285,7 +286,7 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
               ),
               SizedBox(height: 8.h),
               Text(
-                'N${widget.walletBalance.toStringAsFixed(2)}',
+                widget.walletBalance.formatAmountWithCurrency(),
                 style: TextStyle(
                   fontSize: 28.sp,
                   fontWeight: FontWeight.bold,

@@ -5,12 +5,13 @@ import 'package:intl/intl.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/wallet_models.dart';
 import 'package:ridenowappsss/modules/wallet/domain/services/wallet_service.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 enum WalletState { initial, loading, loaded, error, refreshing, loadingMore }
 
 class WalletProvider extends ChangeNotifier {
   final WalletService _walletService;
-  static const int _itemsPerPage = 20;
+  static const int _itemsPerPage = 10;
 
   WalletState _state = WalletState.initial;
   WalletBalance? _balance;
@@ -51,7 +52,7 @@ class WalletProvider extends ChangeNotifier {
   bool get hasWithdrawalPin => _hasWithdrawalPin;
 
   String get formattedBalance {
-    return _balance?.balance.toStringAsFixed(2) ?? '0.00';
+    return _balance?.balance.formatAmountWithCurrency() ?? '₦0';
   }
 
   String? get errorMessage {
@@ -226,7 +227,12 @@ class WalletProvider extends ChangeNotifier {
     if (isLoading) return;
 
     try {
-      _updateState(WalletState.loading);
+      // Only set to loading state if we don't have data yet
+      // This implements the "Silent Refresh" pattern for a better UX
+      if (!hasData) {
+        _updateState(WalletState.loading);
+      }
+      
       _clearError();
 
       await Future.wait([

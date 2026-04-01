@@ -31,6 +31,11 @@ class RideRequestsListView extends StatelessWidget {
       return const DriverRideRequestsListShimmer();
     }
 
+    // Check if the driver is approved - Show Pending Admin Approval if not.
+    if (viewModel.isVerificationStatusLoaded && !viewModel.isApproved) {
+      return _buildErrorState(context, forceUnverified: true);
+    }
+
     if (viewModel.hasError) {
       return _buildErrorState(context);
     }
@@ -61,9 +66,11 @@ class RideRequestsListView extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context) {
-    final isUnverified = viewModel.errorMessage?.contains('No active and verified vehicle found') == true ||
-        viewModel.errorMessage?.contains('DRIVER_VERIFICATION_REQUIRED') == true;
+  Widget _buildErrorState(BuildContext context, {bool forceUnverified = false}) {
+    final isUnverified = forceUnverified || 
+        viewModel.errorMessage?.contains('No active and verified vehicle found') == true ||
+        viewModel.errorMessage?.contains('DRIVER_VERIFICATION_REQUIRED') == true ||
+        viewModel.errorMessage?.contains('fully verified and approved') == true;
 
     if (isUnverified) {
       return Center(
@@ -248,6 +255,9 @@ class RideRequestItem extends StatelessWidget {
               request.riderImage.isNotEmpty
                   ? NetworkImage(request.riderImage)
                   : null,
+          onBackgroundImageError: request.riderImage.isNotEmpty 
+              ? (exception, stackTrace) {} 
+              : null,
           child:
               request.riderImage.isEmpty
                   ? Icon(Icons.person, size: 20.sp)

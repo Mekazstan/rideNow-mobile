@@ -27,16 +27,20 @@ class SubscriptionProvider extends ChangeNotifier {
         print('=== SubscriptionProvider: Fetching Plans ===');
       }
 
-      _state = SubscriptionState.loading;
-      _errorMessage = null;
-      notifyListeners();
+      // Only set to loading state if we don't have data yet
+      // This implements the "Silent Refresh" pattern for a better UX
+      if (_plans.isEmpty) {
+        _state = SubscriptionState.loading;
+        _errorMessage = null;
+        notifyListeners();
+      }
 
       final response = await _subscriptionService.getSubscriptionPlans();
 
       _plans = response.plans;
       _currentSubscription = response.currentSubscription;
       _state = SubscriptionState.loaded;
-
+      
       if (kDebugMode) {
         print('Plans loaded: ${_plans.length}');
         print(

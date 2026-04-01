@@ -13,6 +13,7 @@ import 'package:ridenowappsss/modules/wallet/presentation/views/widgets/transact
 import 'package:ridenowappsss/shared/widgets/ride_now_bottomsheet.dart';
 import 'package:ridenowappsss/shared/widgets/ridenow_textfield.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class BalanceDisplay extends StatelessWidget {
   final String balance;
@@ -28,24 +29,19 @@ class BalanceDisplay extends StatelessWidget {
     required this.onToggleVisibility,
   });
 
-  /// Formats balance with thousand separators
-  String _formatBalance(String balance) {
-    final numericBalance = double.tryParse(balance.replaceAll(',', '')) ?? 0.0;
-    final formatter = NumberFormat('#,###');
-    return formatter.format(numericBalance.round());
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
-    final formattedBalance = _formatBalance(balance);
+    final formattedBalance = balance.formatAmount();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          isVisible ? '$currency $formattedBalance' : '****',
+          isVisible ? '$currency$formattedBalance' : '****',
           style: appFonts.textSmMedium.copyWith(
             color: appColors.textPrimary,
             fontSize: 24,
@@ -305,11 +301,7 @@ class TransactionItem extends StatelessWidget {
 
   const TransactionItem({super.key, required this.transaction});
 
-  /// Formats amount with thousand separators
-  String _formatAmount(double amount) {
-    final formatter = NumberFormat('#,###');
-    return formatter.format(amount.round());
-  }
+
 
   /// Returns colors based on transaction type
   Map<String, Color> _getTransactionColors(
@@ -441,7 +433,7 @@ class TransactionItem extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${transaction.isDeposit ? "+" : "-"}${transaction.currency} ${_formatAmount(transaction.amount)}',
+                  '${transaction.isDeposit ? "+" : "-"}${transaction.amount.formatAmountWithCurrency()}',
                   style: appFonts.textSmBold.copyWith(
                     color: colors['amount'],
                   ),
@@ -550,8 +542,8 @@ class PendingTransactionSheet extends StatelessWidget {
           SizedBox(height: 16.h),
           Text(
             transaction.isDeposit
-                ? 'You have a pending deposit of ${transaction.currency}${transaction.amount.abs().toStringAsFixed(0)}. Please complete the payment below.'
-                : 'Your withdrawal of ${transaction.currency}${transaction.amount.abs().toStringAsFixed(0)} is being processed. Funds will be sent to the account below.',
+                ? 'You have a pending deposit of ${transaction.amount.abs().formatAmountWithCurrency()}. Please complete the payment below.'
+                : 'Your withdrawal of ${transaction.amount.abs().formatAmountWithCurrency()} is being processed. Funds will be sent to the account below.',
             style: appFonts.textSmRegular.copyWith(
               color: appColors.gray600,
             ),

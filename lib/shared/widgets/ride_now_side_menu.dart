@@ -8,6 +8,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
+import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
+import 'package:ridenowappsss/modules/community/presentation/providers/community_provider.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/providers/subscription_plan_provider.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
@@ -31,7 +34,7 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
   bool _isLoadingLocation = true;
   final Set<Marker> _markers = {};
   bool _isLoggingOut = false;
-  bool _isLoadingProfile = true;
+  bool _isLoadingProfile = false; // Initialize to false if user might already exist
   String _currentLocationName = 'Locating...';
 
   static const LatLng _defaultLocation = LatLng(6.3350, 5.6037);
@@ -41,6 +44,20 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
     super.initState();
     _loadUserProfile();
     _getCurrentLocation();
+    _eagerLoadData();
+  }
+
+  /// Proactively fetches data for other screens to ensure smooth navigation
+  void _eagerLoadData() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      // Pre-fetch data for Wallet, Community, and Plans
+      // These calls are now non-blocking and use "Silent Refresh" pattern
+      context.read<WalletProvider>().initializeWallet();
+      context.read<CommunityProvider>().fetchSharedRides();
+      context.read<SubscriptionProvider>().fetchSubscriptionPlans();
+    });
   }
 
   @override
@@ -52,7 +69,16 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
   /// Fetches user profile from auth provider
   Future<void> _loadUserProfile() async {
     final authProvider = context.read<AuthProvider>();
+    
+    // If we already have a user, don't show the profile shimmer
+    if (authProvider.user != null) {
+      if (mounted) setState(() => _isLoadingProfile = false);
+    } else {
+      if (mounted) setState(() => _isLoadingProfile = true);
+    }
+
     await authProvider.fetchProfile();
+    
     if (mounted) {
       setState(() => _isLoadingProfile = false);
     }
@@ -243,6 +269,15 @@ class _RideNowSideMenuState extends State<RideNowSideMenu> {
                     onTap: () {
                       Navigator.pop(context);
                       context.goNamed(RouteConstants.ride);
+                    },
+                  ),
+                  Divider(color: appColors.gray200),
+                  MenuTile(
+                    icon: 'assets/document.svg',
+                    title: 'My Rides',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.pushNamed(RouteConstants.myRides);
                     },
                   ),
                   Divider(color: appColors.gray200),

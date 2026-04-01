@@ -30,7 +30,6 @@ class _WalletScreenState extends State<WalletScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeWallet();
-      _setupScrollListener();
     });
   }
 
@@ -40,23 +39,6 @@ class _WalletScreenState extends State<WalletScreen> {
     super.dispose();
   }
 
-  void _setupScrollListener() {
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (!_isNearBottom()) return;
-
-    final provider = _getWalletProvider(listen: false);
-    if (provider.hasMorePages && !provider.isLoadingMore) {
-      provider.loadMoreTransactions();
-    }
-  }
-
-  bool _isNearBottom() {
-    return _scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200;
-  }
 
   Future<void> _initializeWallet() async {
     final provider = _getWalletProvider(listen: false);

@@ -9,6 +9,7 @@ import 'package:ridenowappsss/shared/widgets/navigation_button.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu_driver.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -53,13 +54,13 @@ class _PlansScreenState extends State<PlansScreen> {
                       appColors,
                       'monthly',
                       'Monthly Subscription',
-                      'N8,000.00',
+                      8000.0.formatAmountWithCurrency(),
                       'Pay a weekly fee and drive without charges.',
                       true,
                       [
-                        'Drivers pay â‚¦8,000 Weekly',
+                        'Drivers pay ${8000.0.formatAmountWithCurrency()} Weekly',
                         'Capped at 25 rides/day',
-                        'Additional rides: â‚¦50 each after daily cap',
+                        'Additional rides: ${50.0.formatAmountWithCurrency()} each after daily cap',
                       ],
                     ),
                     SizedBox(height: 16.h),
@@ -67,13 +68,13 @@ class _PlansScreenState extends State<PlansScreen> {
                       appColors,
                       'weekly',
                       'Weekly Subscription',
-                      'N2,000.00',
+                      2000.0.formatAmountWithCurrency(),
                       'Pay a weekly fee and drive without charges.',
                       false,
                       [
-                        'Drivers pay â‚¦2,000 Weekly',
+                        'Drivers pay ${2000.0.formatAmountWithCurrency()} Weekly',
                         'Capped at 20 rides/day',
-                        'Additional rides: â‚¦100 each after daily cap',
+                        'Additional rides: ${100.0.formatAmountWithCurrency()} each after daily cap',
                       ],
                     ),
                   ],

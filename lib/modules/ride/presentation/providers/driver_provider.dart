@@ -5,26 +5,36 @@ import 'package:ridenowappsss/modules/ride/data/repositories/driver_repository.d
 import 'package:ridenowappsss/core/services/location_service.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/driver_analytics_models.dart';
 import 'package:ridenowappsss/modules/ride/data/models/driver_misc_models.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ridenowappsss/modules/ride/data/repositories/places_repository.dart';
+import 'package:ridenowappsss/modules/ride/data/models/location_model.dart';
+import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart';
+import 'package:ridenowappsss/core/services/socket_service.dart';
+import 'package:ridenowappsss/core/services/service_locator.dart';
+import 'package:ridenowappsss/core/services/toast_service.dart';
 
 class DriverProvider extends ChangeNotifier {
   final DriverRepository _repository;
   final LocationService _locationService;
+  final PlacesRepository _placesRepository;
 
   DriverProvider({
     required DriverRepository repository,
     required LocationService locationService,
+    required PlacesRepository placesRepository,
   }) : _repository = repository,
-       _locationService = locationService;
+       _locationService = locationService,
+       _placesRepository = placesRepository;
 
   // State
   List<RideRequest> _rideRequests = [];
   bool _isLoading = false;
   bool _isRefreshing = false;
   String? _errorMessage;
-  Timer? _autoRefreshTimer;
   VerificationStatusResponse? _verificationStatus;
   bool _isOnline = false;
   bool _isTogglingStatus = false;
+  String? _initialApprovalStatus;
 
   // Current location for filtering
   String? _currentLocation;
@@ -35,6 +45,21 @@ class DriverProvider extends ChangeNotifier {
   // Ride limits
   int _ridesCompletedToday = 0;
   int _dailyLimit = 20;
+  DateTime? _lastSyncTime;
+
+  // Active Ride State
+  AcceptRideResponse? _activeRide;
+  bool _isArrivedAtPickup = false;
+  bool _isRideStarted = false;
+  bool _isRideCompleted = false;
+
+  // Map state
+  Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  bool _isLoadingRoute = false;
+  List<ChatMessage> _chatMessages = [];
+  bool _isLoadingChat = false;
+
 
   // Getters
   List<RideRequest> get rideRequests => _rideRequests;
@@ -53,6 +78,30 @@ class DriverProvider extends ChangeNotifier {
   VerificationStatusResponse? get verificationStatus => _verificationStatus;
   bool get isOnline => _isOnline;
   bool get isTogglingStatus => _isTogglingStatus;
+
+  // Active Ride Getters
+  AcceptRideResponse? get activeRide => _activeRide;
+  bool get isArrivedAtPickup => _isArrivedAtPickup;
+  bool get isRideStarted => _isRideStarted;
+  bool get isRideCompleted => _isRideCompleted;
+  bool get hasActiveRide => _activeRide != null;
+
+  // Map Getters
+  Set<Marker> get markers => _markers;
+  Set<Polyline> get polylines => _polylines;
+  bool get isLoadingRoute => _isLoadingRoute;
+  List<ChatMessage> get chatMessages => _chatMessages;
+  bool get isLoadingChat => _isLoadingChat;
+
+  // Verification status getters
+  bool get isApproved {
+    if (_verificationStatus != null) {
+      return _verificationStatus!.isFullyVerified;
+    }
+    return _initialApprovalStatus == 'approved';
+  }
+  bool get isVerificationStatusLoaded =>
+      _verificationStatus != null || _initialApprovalStatus != null;
 
   // Filtered ride requests based on search
   List<RideRequest> _filteredRequests = [];
@@ -79,7 +128,62 @@ class DriverProvider extends ChangeNotifier {
     debugPrint('   📍 Longitude: $_currentLon');
     debugPrint('   📍 Radius: $_radiusKm km');
 
+    // Trigger real-time location update via socket if on a ride
+    if (_activeRide != null && _isOnline) {
+      getIt<SocketService>().emit('driver_location_update', {
+        'rideId': _activeRide!.rideDetails!.rideId,
+        'lat': lat,
+        'lng': lon,
+      });
+    }
+
+    // Trigger backend sync for auto-promotion and tracking
+    syncLocationWithBackend();
+
     notifyListeners();
+  }
+
+  /// Sync current location with backend
+  Future<void> syncLocationWithBackend() async {
+    if (_currentLat == null || _currentLon == null) return;
+
+    // Throttle: only sync once every 30 seconds to save battery/bandwidth
+    final now = DateTime.now();
+    if (_lastSyncTime != null &&
+        now.difference(_lastSyncTime!) < const Duration(seconds: 30)) {
+      return;
+    }
+
+    _lastSyncTime = now;
+    debugPrint('📡 Syncing location with backend...');
+
+    try {
+      final response = await _repository.updateLocation(
+        lat: _currentLat!,
+        lng: _currentLon!,
+        address: _currentLocation,
+      );
+
+      if (response['success'] == true) {
+        final wasOffline = !_isOnline;
+        final backendIsOnline = response['is_online'] as bool? ?? false;
+
+        if (wasOffline && backendIsOnline) {
+          debugPrint('🎊 Driver automatically promoted to ONLINE by backend');
+          _isOnline = true;
+          _setupSocketListeners();
+          fetchRideRequests(isRefresh: true);
+        } else if (!wasOffline && !backendIsOnline) {
+          debugPrint('🔌 Driver set to OFFLINE by backend (likely due to inactivity)');
+          _isOnline = false;
+          stopAutoRefresh();
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      // Periodic sync failures are logged but not shown to UI to avoid annoyance
+      debugPrint('⚠️ Silent failure syncing location: $e');
+    }
   }
 
   /// Fetch ride requests
@@ -226,6 +330,9 @@ class DriverProvider extends ChangeNotifier {
       final request = AcceptRideRequest(
         rideId: rideId,
         proposedFare: proposedFare,
+        driverLat: currentLat,
+        driverLng: currentLon,
+        estimatedArrivalMinutes: 5,
       );
 
       final response = await _repository.acceptRide(request);
@@ -236,6 +343,25 @@ class DriverProvider extends ChangeNotifier {
 
       // Increment local count
       _ridesCompletedToday++;
+      
+      _activeRide = response;
+      _isArrivedAtPickup = false;
+      _isRideStarted = false;
+      _isRideCompleted = false;
+      
+      _setupSocketListeners();
+
+      // Fetch route from driver to pickup
+      if (response.rideDetails != null) {
+        _updateMarkers(
+          pickup: LatLng(response.rideDetails!.pickupLat, response.rideDetails!.pickupLon),
+          destination: LatLng(response.rideDetails!.destinationLat, response.rideDetails!.destinationLon),
+        );
+        fetchRideRoute(
+          LatLng(currentLat!, currentLon!),
+          LatLng(response.rideDetails!.pickupLat, response.rideDetails!.pickupLon),
+        );
+      }
 
       notifyListeners();
 
@@ -274,6 +400,127 @@ class DriverProvider extends ChangeNotifier {
     }
   }
 
+  /// Notify that the driver has arrived at the pickup location
+  Future<bool> notifyArrival() async {
+    if (_activeRide == null) return false;
+    
+    try {
+      debugPrint('🚗 Notifying arrival for ride: ${_activeRide!.rideDetails!.rideId}');
+      
+      await _repository.notifyArrival(
+        _activeRide!.rideDetails!.rideId,
+        'pickup',
+        _currentLat ?? 0.0,
+        _currentLon ?? 0.0,
+        _currentLocation ?? '',
+      );
+
+      _isArrivedAtPickup = true;
+      
+      // Update markers: driver is now at pickup
+      if (_activeRide?.rideDetails != null) {
+        _updateMarkers(
+          pickup: LatLng(_activeRide!.rideDetails!.pickupLat, _activeRide!.rideDetails!.pickupLon),
+          destination: LatLng(_activeRide!.rideDetails!.destinationLat, _activeRide!.rideDetails!.destinationLon),
+          isArrivedAtPickup: true,
+        );
+        _polylines.clear(); // Clear route to pickup
+      }
+      
+      notifyListeners();
+      
+      debugPrint('✅ Arrival notified successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error notifying arrival: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Start the ride after verifying OTP
+  Future<bool> startRide(String otp) async {
+    if (_activeRide == null) return false;
+    
+    try {
+      debugPrint('🚗 Starting ride: ${_activeRide!.rideDetails!.rideId} with OTP: $otp');
+      
+      await _repository.startRide(
+        _activeRide!.rideDetails!.rideId,
+        otp,
+        _currentLat ?? 0.0,
+        _currentLon ?? 0.0,
+        _currentLocation ?? '',
+      );
+
+      _isRideStarted = true;
+      
+      // Fetch route from pickup to destination
+      if (_activeRide?.rideDetails != null) {
+        fetchRideRoute(
+          LatLng(_activeRide!.rideDetails!.pickupLat, _activeRide!.rideDetails!.pickupLon),
+          LatLng(_activeRide!.rideDetails!.destinationLat, _activeRide!.rideDetails!.destinationLon),
+        );
+      }
+      
+      notifyListeners();
+      
+      debugPrint('✅ Ride started successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error starting ride: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Complete the ride at destination
+  Future<bool> completeRide() async {
+    if (_activeRide == null) return false;
+    
+    try {
+      debugPrint('🚗 Completing ride: ${_activeRide!.rideDetails!.rideId}');
+      
+      await _repository.completeRide(
+        _activeRide!.rideDetails!.rideId,
+        _currentLat ?? 0.0,
+        _currentLon ?? 0.0,
+        _currentLocation ?? '',
+      );
+
+      _isRideCompleted = true;
+      _markers.clear();
+      _polylines.clear();
+      notifyListeners();
+      
+      debugPrint('✅ Ride completed successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error completing ride: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Reset ride state (used when going back online after completion)
+  void resetRideState() {
+    _activeRide = null;
+    _isArrivedAtPickup = false;
+    _isRideStarted = false;
+    _isRideCompleted = false;
+    _markers.clear();
+    _polylines.clear();
+    notifyListeners();
+    
+    if (_isOnline) {
+      _setupSocketListeners();
+      fetchRideRequests(isRefresh: true);
+    }
+  }
+
   /// Update search radius and optionally refetch
   void updateRadius(double radiusKm, {bool refetch = false}) {
     if (radiusKm < 1.0 || radiusKm > 100.0) {
@@ -292,23 +539,115 @@ class DriverProvider extends ChangeNotifier {
 
   /// Start auto-refresh (refresh every 30 seconds by default)
   void startAutoRefresh({Duration interval = const Duration(seconds: 30)}) {
-    stopAutoRefresh();
+    _setupSocketListeners();
+  }
 
-    debugPrint('🔄 Auto-refresh started (interval: ${interval.inSeconds}s)');
+  void _setupSocketListeners() {
+    final socketService = getIt<SocketService>();
+    debugPrint('🔌 Setting up driver socket listeners');
 
-    _autoRefreshTimer = Timer.periodic(interval, (_) {
-      debugPrint('🔄 Auto-refreshing ride requests...');
-      fetchRideRequests(isRefresh: true);
+    // Join driver pool if online
+    if (_isOnline) {
+      socketService.emit('join_driver_pool', {});
+    }
+
+    // Join active ride room if exists
+    if (_activeRide != null) {
+      socketService.emit('join_ride', {'rideId': _activeRide!.rideDetails!.rideId});
+    }
+
+    // New Ride Requests
+    socketService.on('new_ride_request', (data) {
+      debugPrint('📡 Socket: New ride request available');
+      fetchRideRequests();
     });
+
+    // Ride Cancellation
+    socketService.on('ride_cancelled', (data) {
+      debugPrint('📡 Socket: Ride cancelled by rider');
+      if (data is Map<String, dynamic> && data['ride_id'] == _activeRide?.rideDetails?.rideId) {
+        ToastService.showInfo('The rider has cancelled the ride.');
+        _activeRide = null;
+        notifyListeners();
+      }
+      fetchRideRequests();
+    });
+
+    // New Chat Messages
+    socketService.on('new_message', (data) {
+      debugPrint('📡 Socket: New message received');
+      if (_activeRide != null) {
+        fetchChatHistory();
+      }
+    });
+  }
+
+  void _cleanupSocketListeners() {
+    final socketService = getIt<SocketService>();
+    socketService.emit('leave_driver_pool', {});
+    if (_activeRide != null) {
+      socketService.emit('leave_ride', {'rideId': _activeRide!.rideDetails!.rideId});
+    }
+    socketService.off('new_ride_request');
+    socketService.off('ride_cancelled');
+    socketService.off('new_message');
   }
 
   /// Stop auto-refresh
   void stopAutoRefresh() {
-    if (_autoRefreshTimer != null) {
-      _autoRefreshTimer?.cancel();
-      _autoRefreshTimer = null;
-      debugPrint('🔄 Auto-refresh stopped');
+    _cleanupSocketListeners();
+  }
+
+  /// Map helpers
+  Future<void> fetchRideRoute(LatLng origin, LatLng destination) async {
+    _isLoadingRoute = true;
+    notifyListeners();
+
+    try {
+      final route = await _placesRepository.getRoute(
+        origin: origin,
+        destination: destination,
+      );
+
+      if (route != null) {
+        _polylines = {
+          Polyline(
+            polylineId: const PolylineId('ride_route'),
+            points: route.points,
+            color: Colors.pink,
+            width: 5,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+          ),
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching ride route: $e');
+    } finally {
+      _isLoadingRoute = false;
+      notifyListeners();
     }
+  }
+
+  void _updateMarkers({
+    required LatLng pickup,
+    required LatLng destination,
+    bool isArrivedAtPickup = false,
+  }) {
+    _markers = {
+      Marker(
+        markerId: const MarkerId('pickup'),
+        position: pickup,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        infoWindow: const InfoWindow(title: 'Pickup Location'),
+      ),
+      Marker(
+        markerId: const MarkerId('destination'),
+        position: destination,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: const InfoWindow(title: 'Destination'),
+      ),
+    };
   }
 
   /// Clear error message
@@ -326,10 +665,17 @@ class DriverProvider extends ChangeNotifier {
       final response = await _repository.getVerificationStatus();
       if (response['success'] == true) {
         _verificationStatus = VerificationStatusResponse.fromJson(response['data']);
+        _errorMessage = null; // Clear error if we finally succeed
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       debugPrint('❌ Error fetching verification status: $_errorMessage');
+      
+      // If we have a bootstrapped status, we don't treat a fetch failure as a fatal error
+      // unless we have no data at all.
+      if (_initialApprovalStatus != null) {
+        debugPrint('ℹ️ Falling back to bootstrapped status: $_initialApprovalStatus');
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -381,7 +727,7 @@ class DriverProvider extends ChangeNotifier {
       if (_isOnline) {
         await _repository.goOffline();
         _isOnline = false;
-        stopAutoRefresh();
+        _cleanupSocketListeners();
         _rideRequests = [];
       } else {
         if (_currentLat == null || _currentLon == null || _currentLocation == null) {
@@ -389,7 +735,7 @@ class DriverProvider extends ChangeNotifier {
         }
         await _repository.goOnline(_currentLat!, _currentLon!, _currentLocation!);
         _isOnline = true;
-        startAutoRefresh(); // Start auto-refreshing requests when online
+        _setupSocketListeners(); // Join driver pool instantly via WebSocket
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -400,10 +746,56 @@ class DriverProvider extends ChangeNotifier {
     }
   }
 
+  /// Bootstrap provider with initial status from user model
+  void initializeFromUser(dynamic user) {
+    if (user != null && user.driverApprovalStatus != null) {
+      _initialApprovalStatus = user.driverApprovalStatus;
+      debugPrint('🚀 DriverProvider initialized from user: $_initialApprovalStatus');
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
-    stopAutoRefresh();
+    _cleanupSocketListeners();
     debugPrint('🗑️ DriverProvider disposed');
     super.dispose();
+  }
+
+  // CHAT METHODS
+  Future<void> fetchChatHistory() async {
+    final rideId = _activeRide?.rideDetails?.rideId;
+    if (rideId == null) return;
+
+    _isLoadingChat = true;
+    notifyListeners();
+
+    try {
+      final response = await _placesRepository.getChatHistory(rideId);
+      _chatMessages = response.messages;
+      _isLoadingChat = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ DriverProvider: Error fetching chat: $e');
+      _isLoadingChat = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> sendMessage(String text) async {
+    final rideId = _activeRide?.rideDetails?.rideId;
+    if (rideId == null) return false;
+
+    try {
+      final response = await _placesRepository.sendMessage(rideId, text);
+      if (response.success) {
+        await fetchChatHistory();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('❌ DriverProvider: Error sending message: $e');
+      return false;
+    }
   }
 }

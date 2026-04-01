@@ -11,6 +11,17 @@ abstract class DriverRepository {
   Future<Map<String, dynamic>> getVerificationStatus();
   Future<void> goOnline(double lat, double lng, String location);
   Future<void> goOffline();
+  Future<Map<String, dynamic>> updateLocation({
+    required double lat,
+    required double lng,
+    String? address,
+    double? heading,
+    double? speed,
+  });
+  Future<void> notifyArrival(String rideId, String type, double lat, double lng, String address);
+  Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address);
+  Future<void> completeRide(String rideId, double lat, double lng, String address);
+  Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address);
 }
 
 class DriverRepositoryImpl implements DriverRepository {
@@ -85,6 +96,68 @@ class DriverRepositoryImpl implements DriverRepository {
       await _remoteDataSource.goOffline();
     } catch (e) {
       debugPrint('❌ Repository: Error going offline: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateLocation({
+    required double lat,
+    required double lng,
+    String? address,
+    double? heading,
+    double? speed,
+  }) async {
+    try {
+      return await _remoteDataSource.updateLocation(
+        lat: lat,
+        lng: lng,
+        address: address,
+        heading: heading,
+        speed: speed,
+      );
+    } catch (e) {
+      debugPrint('❌ Repository: Error updating location: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> notifyArrival(String rideId, String type, double lat, double lng, String address) async {
+    try {
+      await _remoteDataSource.notifyArrival(rideId, type, lat, lng, address);
+    } catch (e) {
+      debugPrint('❌ Repository: Error notifying arrival: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address) async {
+    try {
+      await _remoteDataSource.startRide(rideId, rideCode, lat, lng, address);
+    } catch (e) {
+      debugPrint('❌ Repository: Error starting ride: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> completeRide(String rideId, double lat, double lng, String address) async {
+    try {
+      await _remoteDataSource.completeRide(rideId, lat, lng, address);
+    } catch (e) {
+      debugPrint('❌ Repository: Error completing ride: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address) async {
+    try {
+      await _remoteDataSource.cancelActiveRide(rideId, reason, customReason, lat, lng, address);
+    } catch (e) {
+      debugPrint('❌ Repository: Error cancelling active ride: $e');
       rethrow;
     }
   }

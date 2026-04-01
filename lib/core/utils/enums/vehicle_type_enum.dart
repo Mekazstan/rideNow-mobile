@@ -6,7 +6,7 @@ extension VehicleTypeExtension on VehicleType {
       case VehicleType.standard:
         return 'standard_ride';
       case VehicleType.luxury:
-        return 'luxury';
+        return 'luxury_vehicle';
       case VehicleType.bike:
         return 'bike';
       case VehicleType.tricylce:
@@ -37,7 +37,7 @@ VehicleType? vehicleTypeFromApiValue(String value) {
   switch (value) {
     case 'standard_ride':
       return VehicleType.standard;
-    case 'luxury':
+    case 'luxury_vehicle':
       return VehicleType.luxury;
     case 'bike':
       return VehicleType.bike;

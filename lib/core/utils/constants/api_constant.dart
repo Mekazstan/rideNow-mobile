@@ -7,7 +7,7 @@ class ApiConstants {
       'AIzaSyD7T_mhOQVLdfPuEVCyWjMv7fRO4DXZ73I';
   static const String googleMapsBaseUrl =
       'https://maps.googleapis.com/maps/api';
-  static const String baseUrl = 'http://10.161.100.158:3000';
+  static const String baseUrl = 'http://10.254.126.158:3000';
   static const String countryCode = 'ng';
   static const int searchRadiusMeters = 50000;
 
@@ -47,13 +47,17 @@ class ApiConstants {
   static const String getRideDetailsEndpoint = '/rides';
   static const String cancelRideEndpoint = '/rides/cancel';
   static const String selectDriverEndpoint = '/rides/{rideId}/select-driver';
+  static const String getRiderHistoryEndpoint = '/rides/history';
+  static const String getActiveRideEndpoint = '/rides/active';
+  static const String rideRatingEndpoint = '/rides/{rideId}/rate';
 
   // Driver Endpoints
   static const String driverRideRequestsEndpoint = '/drivers/ride-requests';
-  static const String acceptRideEndpoint = '/drivers/accept-ride';
-  static const String rejectRideEndpoint = '/drivers/reject-ride';
+  static String acceptRideEndpoint(String rideId) => '/drivers/ride-requests/$rideId/accept';
+  static String rejectRideEndpoint(String rideId) => '/drivers/ride-requests/$rideId/decline';
   static const String goOnlineEndpoint = '/drivers/go-online';
   static const String goOfflineEndpoint = '/drivers/go-offline';
+  static const String updateLocationEndpoint = '/drivers/location';
   static const String getAvailableDriversEndpoint =
       '/rides/{rideId}/available-drivers';
   static const String getCounterOffersEndpoint =
@@ -64,6 +68,8 @@ class ApiConstants {
       '/rides/{rideId}/counter-offers/{offerId}/accept';
   static const String declineCounterOfferEndpoint =
       '/rides/{rideId}/counter-offers/{offerId}/decline';
+  static const String getChatHistoryEndpoint = '/rides/{rideId}/chat';
+  static const String sendMessageEndpoint = '/rides/{rideId}/chat';
 
   static const String driverDailyLimitStatusEndpoint = '/drivers/status';
   static const String driverEarningsAnalyticsEndpoint = '/drivers/analytics/earnings';

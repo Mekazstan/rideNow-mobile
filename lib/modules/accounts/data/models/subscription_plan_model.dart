@@ -1,3 +1,5 @@
+import 'package:ridenowappsss/core/utils/extensions/amount_extension_validations_utils.dart';
+
 class SubscriptionPlanResponse {
   final List<SubscriptionPlan> plans;
   final CurrentSubscription? currentSubscription;
@@ -89,7 +91,7 @@ class SubscriptionPlan {
 
   String get formattedPrice {
     if (price == 0) return 'Free';
-    return 'N${price.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
+    return price.formatAmountWithCurrency();
   }
 
   String get description {

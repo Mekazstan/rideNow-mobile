@@ -201,6 +201,8 @@ class User {
   final List<String> activeRoles;
   @JsonKey(name: 'driverOnboardingStatus')
   final String driverOnboardingStatus;
+  @JsonKey(name: 'driver_approval_status')
+  final String? driverApprovalStatus;
 
   User({
     required this.id,
@@ -224,36 +226,44 @@ class User {
     this.currentRole,
     this.activeRoles = const ['rider'],
     this.driverOnboardingStatus = 'pending',
+    this.driverApprovalStatus,
   });
 
   // Factory constructor to match your API response exactly
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? '',
-      userType: json['userType'] ?? '',
-      firstName: json['firstName'] ?? 'User',
-      lastName: json['lastName'] ?? 'User',
+      userType: json['userType'] ?? json['user_type'] ?? '',
+      firstName: json['firstName'] ?? json['first_name'] ?? 'User',
+      lastName: json['lastName'] ?? json['last_name'] ?? 'User',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
-      dateOfBirth: json['dateOfBirth'],
-      profilePhoto: json['profilePhoto'], // Direct mapping
-      emailVerified: json['emailVerified'] ?? false,
-      phoneVerified: json['phoneVerified'] ?? false,
+      dateOfBirth: json['dateOfBirth'] ?? json['date_of_birth'],
+      profilePhoto: json['profilePhoto'] ?? json['profile_photo'],
+      emailVerified: json['emailVerified'] ?? json['email_verified'] ?? false,
+      phoneVerified: json['phoneVerified'] ?? json['phone_verified'] ?? false,
       status: json['status'] ?? 'active',
-      verificationStatus: json['verificationStatus'] ?? '',
-      createdAt: json['createdAt'] ?? '',
-      updatedAt: json['updatedAt'] ?? '',
+      verificationStatus:
+          json['verificationStatus'] ?? json['verification_status'] ?? '',
+      createdAt: json['createdAt'] ?? json['created_at'] ?? '',
+      updatedAt: json['updatedAt'] ?? json['updated_at'] ?? '',
       rating:
           json['rating'] != null ? (json['rating'] as num).toDouble() : null,
-      totalRides: json['totalRides'] ?? 0,
-      locationSharingEnabled: json['locationSharingEnabled'] ?? false,
-      detectiveModeEnabled: json['detectiveModeEnabled'] ?? false,
-      currentRole: json['currentRole'],
-      activeRoles: (json['activeRoles'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const ['rider'],
-      driverOnboardingStatus: json['driverOnboardingStatus'] ?? 'pending',
+      totalRides: json['totalRides'] ?? json['total_rides'] ?? 0,
+      locationSharingEnabled:
+          json['locationSharingEnabled'] ?? json['location_sharing_enabled'] ?? false,
+      detectiveModeEnabled:
+          json['detectiveModeEnabled'] ?? json['detective_mode_enabled'] ?? false,
+      currentRole: json['currentRole'] ?? json['current_role'],
+      activeRoles:
+          ((json['activeRoles'] ?? json['active_roles']) as List?)
+                  ?.cast<String>()
+                  .toList() ??
+              const ['rider'],
+      driverOnboardingStatus:
+          json['driverOnboardingStatus'] ?? json['driver_onboarding_status'] ?? 'pending',
+      driverApprovalStatus:
+          json['driverApprovalStatus'] ?? json['driver_approval_status'],
     );
   }
 

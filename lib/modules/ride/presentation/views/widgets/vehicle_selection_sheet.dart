@@ -8,115 +8,165 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/amount_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/vehicle_selection.dart';
 
-class VehicleSelectionSheet {
-  static void show(
-    BuildContext context, {
-    required String destination,
-    required String pickup,
-    required Function(VehicleType) onVehicleSelected,
-    required Function() onTopUp,
-  }) {
+class VehicleSelectionSheet extends StatefulWidget {
+  final String destination;
+  final String pickup;
+  final Function(VehicleType) onVehicleSelected;
+  final Function() onTopUp;
+  final VoidCallback? onDismiss;
+
+  const VehicleSelectionSheet({
+    super.key,
+    required this.destination,
+    required this.pickup,
+    required this.onVehicleSelected,
+    required this.onTopUp,
+    this.onDismiss,
+  });
+
+  @override
+  State<VehicleSelectionSheet> createState() => _VehicleSelectionSheetState();
+}
+
+class _VehicleSelectionSheetState extends State<VehicleSelectionSheet> {
+  VehicleType? _selectedVehicle;
+  final DraggableScrollableController _controller = DraggableScrollableController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorExtension>()!;
     final appFonts = Theme.of(context).extension<AppFontThemeExtension>()!;
 
-    VehicleType? selectedVehicle;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setState) {
-              return Container(
-                height: 550.h,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20.r),
-                    topRight: Radius.circular(20.r),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                      spreadRadius: 0,
-                    ),
-                  ],
+    return DraggableScrollableSheet(
+      controller: _controller,
+      initialChildSize: 0.55,
+      minChildSize: 0.1,
+      maxChildSize: 0.85,
+      snap: true,
+      builder: (context, scrollController) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isMinimized = constraints.maxHeight < 150.h;
+            
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24.r),
+                  topRight: Radius.circular(24.r),
                 ),
-                child: Column(
-                  children: [
-                    _DragHandle(appColors: appColors),
-                    _SheetTitle(appColors: appColors, appFonts: appFonts),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: VehicleSelectionWidget(
-                          onVehicleSelected: (VehicleType vehicle) {
-                            setState(() {
-                              selectedVehicle = vehicle;
-                            });
-                            // Call the parent callback
-                            onVehicleSelected(vehicle);
-                          },
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      // Drag Handle
+                      _DragHandle(appColors: appColors),
+                      
+                      // Title Area - Hide if minimized
+                      if (!isMinimized)
+                        _SheetTitle(appColors: appColors, appFonts: appFonts),
+                      
+                      // Content
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: EdgeInsets.symmetric(horizontal: 20.w),
+                          children: [
+                            VehicleSelectionWidget(
+                              onVehicleSelected: (VehicleType vehicle) {
+                                setState(() {
+                                  _selectedVehicle = vehicle;
+                                });
+                                widget.onVehicleSelected(vehicle);
+                              },
+                            ),
+                            // Space for the floating button if not minimized
+                            if (!isMinimized) SizedBox(height: 100.h),
+                          ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 32.h),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 48.h,
-                        child: ElevatedButton(
-                          onPressed:
-                              selectedVehicle != null
-                                  ? () {
-                                    Navigator.pop(context);
-
-                                    // Show amount bottom sheet WITH pickup
+                    ],
+                  ),
+                  
+                  // Floating Button at bottom
+                  if (!isMinimized)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withOpacity(0.0),
+                              Colors.white,
+                            ],
+                            stops: const [0.0, 0.3],
+                          ),
+                        ),
+                        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 52.h,
+                          child: ElevatedButton(
+                            onPressed: _selectedVehicle != null
+                                ? () {
+                                    // Show amount bottom sheet
                                     AmountBottomSheet.show(
                                       context,
-                                      destination: destination,
-                                      pickup: pickup,
-                                      onTopUp: onTopUp,
+                                      destination: widget.destination,
+                                      pickup: widget.pickup,
+                                      onTopUp: widget.onTopUp,
                                     );
+                                    if (widget.onDismiss != null) widget.onDismiss!();
                                   }
-                                  : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                selectedVehicle != null
-                                    ? appColors.blue600
-                                    : appColors.gray200,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _selectedVehicle != null
+                                  ? appColors.blue600
+                                  : appColors.gray200,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
                             ),
-                            disabledBackgroundColor: appColors.gray200,
-                          ),
-                          child: Text(
-                            'Go',
-                            style: appFonts.textBaseMedium.copyWith(
-                              color:
-                                  selectedVehicle != null
-                                      ? Colors.white
-                                      : appColors.gray400,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
+                            child: Text(
+                              'Go',
+                              style: appFonts.textBaseMedium.copyWith(
+                                color: _selectedVehicle != null
+                                    ? Colors.white
+                                    : appColors.gray400,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -130,12 +180,12 @@ class _DragHandle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        margin: EdgeInsets.only(top: 12.h),
+        margin: EdgeInsets.symmetric(vertical: 12.h),
         width: 40.w,
-        height: 4.h,
+        height: 5.h,
         decoration: BoxDecoration(
           color: appColors.gray300,
-          borderRadius: BorderRadius.circular(2.r),
+          borderRadius: BorderRadius.circular(2.5.r),
         ),
       ),
     );
@@ -151,15 +201,15 @@ class _SheetTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 17.h),
+      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           'Select a vehicle',
           style: appFonts.textSmMedium.copyWith(
             color: appColors.textPrimary,
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w700,
+            fontSize: 22.sp,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

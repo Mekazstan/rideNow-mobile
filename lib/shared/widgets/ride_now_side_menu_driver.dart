@@ -11,6 +11,9 @@ import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
 import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/shimmer_widget.dart';
+import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
+import 'package:ridenowappsss/modules/community/presentation/providers/community_provider.dart';
+import 'package:ridenowappsss/modules/accounts/presentation/providers/subscription_plan_provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ridenowappsss/shared/widgets/switch_role_modal.dart';
 import 'package:geolocator/geolocator.dart';
@@ -27,7 +30,7 @@ class RideNowSideMenuDriver extends StatefulWidget {
 }
 
 class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
-  bool _isLoadingProfile = true;
+  bool _isLoadingProfile = false;
   bool _isLoggingOut = false;
   GoogleMapController? _mapController;
   LatLng? _currentPosition;
@@ -42,6 +45,20 @@ class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
     super.initState();
     _loadUserProfile();
     _getCurrentLocation();
+    _eagerLoadData();
+  }
+
+  /// Proactively fetches data for other screens to ensure smooth navigation
+  void _eagerLoadData() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      // Driver specifics: Warm up wallet (payouts), analytics and plans
+      context.read<WalletProvider>().initializeWallet();
+      context.read<SubscriptionProvider>().fetchSubscriptionPlans();
+      // Community pre-fetch (optional, but good for consistent feel)
+      context.read<CommunityProvider>().fetchSharedRides();
+    });
   }
 
   @override
@@ -139,7 +156,16 @@ class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
   /// Fetches user profile from auth provider
   Future<void> _loadUserProfile() async {
     final authProvider = context.read<AuthProvider>();
+
+    // Avoid shimmer if we already have data
+    if (authProvider.user != null) {
+      if (mounted) setState(() => _isLoadingProfile = false);
+    } else {
+      if (mounted) setState(() => _isLoadingProfile = true);
+    }
+
     await authProvider.fetchProfile();
+    
     if (mounted) {
       setState(() => _isLoadingProfile = false);
     }
@@ -233,6 +259,15 @@ class _RideNowSideMenuDriverState extends State<RideNowSideMenuDriver> {
                     onTap: () {
                       Navigator.pop(context);
                       context.goNamed(RouteConstants.ride);
+                    },
+                  ),
+                  Divider(color: appColors.gray200),
+                  MenuTile(
+                    icon: 'assets/document.svg',
+                    title: 'My Rides',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.pushNamed(RouteConstants.myRides);
                     },
                   ),
                   Divider(color: appColors.gray200),
