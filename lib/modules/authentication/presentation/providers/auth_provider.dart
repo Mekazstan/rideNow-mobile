@@ -60,15 +60,21 @@ class AuthProvider extends ChangeNotifier {
   /// Returns the route name the user should be sent to based on the backend
   /// `current_step` from `GET /onboardings/status`.
   /// Returns null when onboarding is fully complete → go to the normal app.
-  Future<String?> getOnboardingRoute([String? targetRole]) async {
+  Future<String?> getOnboardingRoute({String? targetRole, String? immediateStep}) async {
     try {
-      final status = await _authService.fetchOnboardingStatus(targetRole);
-      if (status == null) return null;
+      String? currentStep = immediateStep;
+      dynamic status;
+      
+      if (currentStep == null) {
+        status = await _authService.fetchOnboardingStatus(targetRole);
+        if (status == null) return null;
+        currentStep = status['current_step'] as String?;
+      }
 
-      final currentStep = status['current_step'] as String?;
       final userType = _user?.userType?.toLowerCase() ?? 'rider';
-      final isOnboardingAsDriver = status['driver_onboarding_status'] == 'in_progress' || 
-                                   _user?.driverOnboardingStatus == 'in_progress';
+      final isOnboardingAsDriver = 
+          (status?['driver_onboarding_status'] == 'in_progress') || 
+          (_user?.driverOnboardingStatus == 'in_progress');
 
       switch (currentStep) {
         case 'bio_data':

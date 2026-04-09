@@ -4,7 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:ridenowappsss/core/services/google_signin_service.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
 import 'package:ridenowappsss/core/navigation/route_constant.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_color_extension.dart';
 import 'package:ridenowappsss/core/utils/extensions/app_font_extension.dart';
@@ -32,7 +33,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
 
   // Google Sign In instance
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final gsi.GoogleSignIn _googleSignIn = googleSignInService.instance;
 
   @override
   void initState() {
@@ -56,8 +57,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     return RidenowScaffold(
       resizeToAvoidBottomInset: true,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
+      body: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (authProvider.isAuthenticated) {
+              final onboardingRoute = await authProvider.getOnboardingRoute(
+                immediateStep: authProvider.nextStep,
+              );
+              if (!context.mounted) return;
+              if (onboardingRoute != null) {
+                context.goNamed(onboardingRoute);
+              } else {
+                context.goNamed(RouteConstants.ride);
+              }
+            }
+          });
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -103,9 +120,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
             ),
-          );
+            );
+          },
+        );
         },
-      ),
+      )
     );
   }
 
@@ -347,32 +366,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       setState(() => _isLoading = true);
-
       ToastService.showInfo('Signing up with Google...');
 
       // Sign out first to ensure account picker shows
       await _googleSignIn.signOut();
 
-      // Trigger Google Sign-In (Authentication)
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+      // Use .authenticate() instead of .signIn()
+      final gsi.GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
 
       if (googleUser == null) {
-        // User cancelled the sign-in
         ToastService.showInfo('Sign up cancelled');
         return;
       }
 
-      // Get Authorization (Access Token)
-      final authorization = await googleUser.authorizationClient.authorizationForScopes(['email', 'profile']);
+      // Request authorization
+      final List<String> scopes = [
+        'email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ];
+      
+      final authorizedUser = await googleUser.authorizationClient.authorizeScopes(scopes);
+      final String? accessToken = authorizedUser.accessToken;
 
-      if (authorization?.accessToken == null) {
+      if (accessToken == null) {
         ToastService.showError('Failed to get access token from Google');
         return;
       }
 
-      // Show user type selection dialog
       if (!mounted) return;
-
       final userType = await _showUserTypeDialog();
 
       if (userType == null) {
@@ -381,33 +402,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
 
-      // Call your API with the access token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
       if (mounted) AppLoadingDialog.show(context, message: 'Creating your account...');
+      
       final success = await authProvider.socialSignUp(
         provider: 'google',
         userType: userType,
-        accessToken: authorization!.accessToken,
+        accessToken: accessToken,
       );
+
       if (mounted) Navigator.pop(context); // Hide loading dialog
 
       if (!success && mounted) {
-        // Error is already handled by the provider
         await _googleSignIn.signOut();
       }
     } catch (e) {
       print('Google Sign-Up Error: $e');
-      ToastService.showError(
-        'Failed to sign up with Google. Please try again.',
-      );
+      ToastService.showError('Failed to sign up with Google.');
       await _googleSignIn.signOut();
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   Future<void> _handleAppleSignUp() async {
     if (_isLoading) return;

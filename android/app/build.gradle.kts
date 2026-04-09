@@ -3,10 +3,11 @@ plugins {
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.ridenowapps"
+    namespace = "com.example.ridenowappsss"
     compileSdk = 36
     ndkVersion = "29.0.14206865"
 
@@ -30,6 +31,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 android {
     
     defaultConfig {
+        applicationId = "com.example.ridenowappsss"
         minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode

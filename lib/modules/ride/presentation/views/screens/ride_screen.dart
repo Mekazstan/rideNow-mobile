@@ -19,6 +19,7 @@ import 'package:ridenowappsss/modules/ride/presentation/views/widgets/vehicle_se
 import 'package:ridenowappsss/modules/ride/presentation/providers/rider_provider.dart';
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_on_way_sheet.dart';
+import 'package:ridenowappsss/modules/ride/presentation/views/widgets/ride_accepted_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_arrived_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/trip_in_progress_sheet.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/trip_arrived_sheet.dart';
@@ -432,13 +433,22 @@ class _RideScreenState extends State<RideScreen> with WidgetsBindingObserver {
                     },
                   ),
 
-                // Driver on Way Sheet
+                // Accepted / Driver on Way Sheet
                 if (viewModel.rideStage == RideStage.driverOnWay)
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: DriverOnWaySheet(
+                    child: viewModel.isShowingAcceptedSuccess 
+                        ? RideAcceptedBottomSheet(
+                            profilePhotoOverride: viewModel.bookedDriverPhoto,
+                            title: '${viewModel.bookedDriverName?.split(" ").first ?? "Driver"} has accepted!',
+                            subtitle: '${viewModel.bookedDriverName} • ★ ${viewModel.bookedDriverRating}',
+                            fare: viewModel.rideDetails?.fareAmount.toString() != null 
+                                ? '₦${viewModel.rideDetails!.fareAmount}' 
+                                : '',
+                          )
+                        : DriverOnWaySheet(
                       rideDetails: viewModel.rideDetails,
                       pickupAddress: viewModel.activePickupAddress,
                       destinationAddress: viewModel.activeDestinationAddress,

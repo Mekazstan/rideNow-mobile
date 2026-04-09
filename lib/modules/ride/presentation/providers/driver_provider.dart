@@ -12,6 +12,7 @@ import 'package:ridenowappsss/modules/ride/data/models/ride_api_models.dart';
 import 'package:ridenowappsss/core/services/socket_service.dart';
 import 'package:ridenowappsss/core/services/service_locator.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/modules/ride/data/models/driver_vehicle_model.dart';
 
 class DriverProvider extends ChangeNotifier {
   final DriverRepository _repository;
@@ -58,10 +59,25 @@ class DriverProvider extends ChangeNotifier {
   Set<Polyline> _polylines = {};
   bool _isLoadingRoute = false;
   List<ChatMessage> _chatMessages = [];
+  bool _isShowingAcceptedSuccess = false;
   bool _isLoadingChat = false;
 
+  // Vehicle State
+  List<Vehicle> _vehicles = [];
+  String? _selectedVehicleId;
+  bool _isLoadingVehicles = false;
+
+  // Counter Offer State
+  String? _pendingCounterOfferRideId;
+  double? _pendingCounterOfferAmount;
+  bool _isBooking = false;
 
   // Getters
+  String? get pendingCounterOfferRideId => _pendingCounterOfferRideId;
+  double? get pendingCounterOfferAmount => _pendingCounterOfferAmount;
+  bool get hasPendingCounterOffer => _pendingCounterOfferRideId != null;
+  bool get isBooking => _isBooking;
+
   List<RideRequest> get rideRequests => _rideRequests;
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
@@ -92,6 +108,12 @@ class DriverProvider extends ChangeNotifier {
   bool get isLoadingRoute => _isLoadingRoute;
   List<ChatMessage> get chatMessages => _chatMessages;
   bool get isLoadingChat => _isLoadingChat;
+  bool get isShowingAcceptedSuccess => _isShowingAcceptedSuccess;
+  
+  List<Vehicle> get vehicles => _vehicles;
+  String? get selectedVehicleId => _selectedVehicleId;
+  bool get isLoadingVehicles => _isLoadingVehicles;
+  bool get hasVehicles => _vehicles.isNotEmpty;
 
   // Verification status getters
   bool get isApproved {
@@ -358,7 +380,7 @@ class DriverProvider extends ChangeNotifier {
           destination: LatLng(response.rideDetails!.destinationLat, response.rideDetails!.destinationLon),
         );
         fetchRideRoute(
-          LatLng(currentLat!, currentLon!),
+          LatLng(currentLat ?? 0.0, currentLon ?? 0.0),
           LatLng(response.rideDetails!.pickupLat, response.rideDetails!.pickupLon),
         );
       }
@@ -371,6 +393,35 @@ class DriverProvider extends ChangeNotifier {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       debugPrint('❌ Error accepting ride: $_errorMessage');
       debugPrint('Full error: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Send a counter offer for a ride request
+  Future<bool> sendCounterOffer(String rideId, double amount) async {
+    try {
+      debugPrint('🚀 Sending counter offer: $rideId → $amount');
+      _isBooking = true;
+      notifyListeners();
+
+      await _repository.sendCounterOffer(rideId, amount);
+      
+      _pendingCounterOfferRideId = rideId;
+      _pendingCounterOfferAmount = amount;
+      
+      // Setup listeners for acceptance
+      _setupSocketListeners();
+
+      _isBooking = false;
+      notifyListeners();
+
+      debugPrint('✅ Counter offer sent successfully');
+      return true;
+    } catch (e) {
+      _isBooking = false;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      debugPrint('❌ Error sending counter offer: $_errorMessage');
       notifyListeners();
       return false;
     }
@@ -548,13 +599,40 @@ class DriverProvider extends ChangeNotifier {
 
     // Join driver pool if online
     if (_isOnline) {
-      socketService.emit('join_driver_pool', {});
+      socketService.emit('join_driver_requests', {});
     }
 
     // Join active ride room if exists
-    if (_activeRide != null) {
-      socketService.emit('join_ride', {'rideId': _activeRide!.rideDetails!.rideId});
+    final activeRideId = _activeRide?.rideDetails?.rideId ?? _activeRide?.rideId;
+    if (activeRideId != null) {
+      socketService.emit('join_ride_as_driver', {'rideId': activeRideId});
+    } else if (_pendingCounterOfferRideId != null) {
+      socketService.emit('join_ride_as_driver', {'rideId': _pendingCounterOfferRideId});
     }
+
+    // Ride Status Updates (Crucial for counter offer acceptance)
+    socketService.on('ride_status_update', (data) {
+      debugPrint('📡 Socket: Ride status updated: $data');
+      if (data is Map<String, dynamic> && data['data'] != null) {
+        final status = data['data']['status'];
+        if (status == 'driver_assigned') {
+          debugPrint('🎊 Rider accepted counter offer!');
+          
+          _isShowingAcceptedSuccess = true;
+          notifyListeners();
+          
+          Future.delayed(const Duration(seconds: 5), () {
+            _isShowingAcceptedSuccess = false;
+            notifyListeners();
+          });
+
+          clearPendingCounterOffer();
+          // Re-fetch ride requests and active ride
+          fetchRideRequests(isRefresh: true);
+          ToastService.showSuccess('A rider accepted your counter offer!');
+        }
+      }
+    });
 
     // New Ride Requests
     socketService.on('new_ride_request', (data) {
@@ -562,13 +640,28 @@ class DriverProvider extends ChangeNotifier {
       fetchRideRequests();
     });
 
+    // Counter Offer Declined
+    socketService.on('counter_offer_declined', (data) {
+      debugPrint('📡 Socket: Counter offer declined by rider: $data');
+      ToastService.showInfo('The rider has declined your counter offer.');
+      clearPendingCounterOffer();
+      fetchRideRequests();
+    });
+
     // Ride Cancellation
     socketService.on('ride_cancelled', (data) {
       debugPrint('📡 Socket: Ride cancelled by rider');
-      if (data is Map<String, dynamic> && data['ride_id'] == _activeRide?.rideDetails?.rideId) {
-        ToastService.showInfo('The rider has cancelled the ride.');
-        _activeRide = null;
-        notifyListeners();
+      if (data is Map<String, dynamic>) {
+        final canceledRideId = data['ride_id'];
+        
+        if (canceledRideId == _activeRide?.rideDetails?.rideId) {
+          ToastService.showInfo('The rider has cancelled the ride.');
+          _activeRide = null;
+          notifyListeners();
+        } else if (canceledRideId == _pendingCounterOfferRideId) {
+          ToastService.showInfo('The rider has cancelled their ride request.');
+          clearPendingCounterOffer();
+        }
       }
       fetchRideRequests();
     });
@@ -584,10 +677,12 @@ class DriverProvider extends ChangeNotifier {
 
   void _cleanupSocketListeners() {
     final socketService = getIt<SocketService>();
-    socketService.emit('leave_driver_pool', {});
-    if (_activeRide != null) {
-      socketService.emit('leave_ride', {'rideId': _activeRide!.rideDetails!.rideId});
+    socketService.emit('leave_driver_requests', {});
+    final activeRideId = _activeRide?.rideDetails?.rideId ?? _activeRide?.rideId;
+    if (activeRideId != null) {
+      socketService.emit('leave_ride_as_driver', {'rideId': activeRideId});
     }
+    socketService.off('ride_status_update');
     socketService.off('new_ride_request');
     socketService.off('ride_cancelled');
     socketService.off('new_message');
@@ -656,6 +751,13 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clear pending counter offer state
+  void clearPendingCounterOffer() {
+    _pendingCounterOfferRideId = null;
+    _pendingCounterOfferAmount = null;
+    notifyListeners();
+  }
+
   Future<void> fetchVerificationStatus() async {
     _isLoading = true;
     _errorMessage = null;
@@ -685,7 +787,11 @@ class DriverProvider extends ChangeNotifier {
   /// Refresh ride requests manually
   Future<void> refresh() async {
     debugPrint('🔄 Manual refresh triggered');
-    await fetchRideRequests(isRefresh: true);
+    final futures = <Future>[
+      fetchRideRequests(isRefresh: true),
+      fetchVerificationStatus(),
+    ];
+    await Future.wait(futures);
   }
 
   /// Reset all filters
@@ -708,42 +814,109 @@ class DriverProvider extends ChangeNotifier {
   Future<void> toggleOnlineStatus() async {
     if (_isTogglingStatus) return;
 
-    // Check verification before allowing to go online
     if (!_isOnline) {
-      if (_verificationStatus == null ||
-          _verificationStatus!.backgroundCheckStatus != 'passed' ||
-          _verificationStatus!.approvalStatus != 'approved') {
+      if (!isApproved) {
         _errorMessage = 'You must be fully verified and approved to go online.';
-        notifyListeners();
+        ToastService.showError(_errorMessage!);
+        fetchVerificationStatus(); // Refresh status in case it changed
         return;
       }
-    }
 
-    _isTogglingStatus = true;
-    _errorMessage = null;
-    notifyListeners();
+      if (_currentLat == null || _currentLon == null || _currentLocation == null) {
+        _errorMessage = 'Location not available. Please enable location services.';
+        ToastService.showError(_errorMessage!);
+        return;
+      }
 
-    try {
-      if (_isOnline) {
+      // Ensure vehicles are loaded
+      if (_vehicles.isEmpty) {
+        await fetchVehicles();
+      }
+
+      if (_vehicles.isEmpty) {
+        _errorMessage = 'You must have at least one registered vehicle to go online.';
+        ToastService.showError(_errorMessage!);
+        return;
+      }
+
+      // Default to selected or first verified
+      final vehicleToUse = _vehicles.firstWhere(
+        (v) => v.id == _selectedVehicleId,
+        orElse: () => _vehicles.firstWhere(
+          (v) => v.verificationStatus == 'verified' || v.verificationStatus == 'approved',
+          orElse: () => _vehicles.first,
+        ),
+      );
+
+      _isTogglingStatus = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      try {
+        await _repository.goOnline(_currentLat!, _currentLon!, _currentLocation!, vehicleToUse.id);
+        _isOnline = true;
+        _setupSocketListeners();
+        fetchRideRequests(isRefresh: true);
+        ToastService.showSuccess('You are now online');
+      } catch (e) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        debugPrint('❌ Error going online: $_errorMessage');
+        ToastService.showError(_errorMessage!);
+      } finally {
+        _isTogglingStatus = false;
+        notifyListeners();
+      }
+    } else {
+      _isTogglingStatus = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      try {
         await _repository.goOffline();
         _isOnline = false;
         _cleanupSocketListeners();
         _rideRequests = [];
-      } else {
-        if (_currentLat == null || _currentLon == null || _currentLocation == null) {
-          throw Exception('Location not available. Please enable location services.');
-        }
-        await _repository.goOnline(_currentLat!, _currentLon!, _currentLocation!);
-        _isOnline = true;
-        _setupSocketListeners(); // Join driver pool instantly via WebSocket
+        ToastService.showInfo('You are now offline');
+      } catch (e) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        debugPrint('❌ Error going offline: $_errorMessage');
+        ToastService.showError(_errorMessage!);
+      } finally {
+        _isTogglingStatus = false;
+        notifyListeners();
       }
+    }
+  }
+
+  Future<void> fetchVehicles() async {
+    _isLoadingVehicles = true;
+    notifyListeners();
+
+    try {
+      final response = await _repository.getVehicles();
+      _vehicles = response.vehicles;
+      
+      if (_vehicles.isNotEmpty) {
+        final active = _vehicles.where((v) => v.isActive).toList();
+        if (active.isNotEmpty) {
+          _selectedVehicleId = active.first.id;
+        } else {
+          _selectedVehicleId = _vehicles.first.id;
+        }
+      }
+      
+      _isLoadingVehicles = false;
+      notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      debugPrint('❌ Error toggling status: $_errorMessage');
-    } finally {
-      _isTogglingStatus = false;
+      debugPrint('❌ Error fetching vehicles: $e');
+      _isLoadingVehicles = false;
       notifyListeners();
     }
+  }
+
+  void selectVehicle(String vehicleId) {
+    _selectedVehicleId = vehicleId;
+    notifyListeners();
   }
 
   /// Bootstrap provider with initial status from user model

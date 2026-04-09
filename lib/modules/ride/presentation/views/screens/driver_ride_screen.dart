@@ -11,6 +11,7 @@ import 'package:ridenowappsss/modules/ride/presentation/views/widgets/active_rid
 import 'package:ridenowappsss/shared/widgets/ride_now_side_menu.dart';
 import 'package:ridenowappsss/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:ridenowappsss/shared/widgets/app_dialogs.dart';
+import 'package:ridenowappsss/modules/ride/presentation/views/widgets/ride_accepted_bottom_sheet.dart';
 import 'package:ridenowappsss/modules/wallet/presentation/providers/wallet_provider.dart';
 import 'package:ridenowappsss/modules/community/presentation/providers/community_provider.dart';
 import 'package:ridenowappsss/modules/accounts/presentation/providers/subscription_plan_provider.dart';
@@ -166,7 +167,16 @@ class _RideScreenDriverState extends State<RideScreenDriver> {
             child: Consumer<DriverProvider>(
               builder: (context, provider, child) {
                 if (provider.hasActiveRide) {
-                  return const ActiveRideBottomSheet();
+                  return provider.isShowingAcceptedSuccess 
+                    ? RideAcceptedBottomSheet(
+                        profilePhotoOverride: provider.activeRide?.rideDetails?.riderPhoto,
+                        title: '${provider.activeRide?.rideDetails?.riderName.split(" ").first ?? "Rider"} has accepted!',
+                        subtitle: '${provider.activeRide?.rideDetails?.riderName} • ★ ${provider.activeRide?.rideDetails?.riderRating ?? "4.9"}',
+                        fare: provider.activeRide?.rideDetails?.fare != null 
+                             ? '₦${provider.activeRide!.rideDetails!.fare}' 
+                             : '',
+                      )
+                    : const ActiveRideBottomSheet();
                 }
 
                 return RideRequestBottomSheet(

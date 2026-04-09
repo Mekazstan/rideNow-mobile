@@ -137,7 +137,7 @@ class CounterOffer {
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       ridesCompleted:
           json['rides_completed'] as int? ?? json['total_rides'] as int? ?? 0,
-      proposedFare: (json['proposed_fare'] as num?)?.toDouble() ?? 0.0,
+      proposedFare: (json['amount'] as num?)?.toDouble() ?? (json['proposed_fare'] as num?)?.toDouble() ?? 0.0,
       estimatedTime:
           json['estimated_time'] as String? ??
           json['eta'] as String? ??

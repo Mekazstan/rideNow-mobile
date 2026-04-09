@@ -48,17 +48,18 @@ class LocationData {
   }
 }
 
-/// Response model for created ride
 class CreateRideResponse {
   final String rideId;
   final String status;
   final String message;
+  final String? rideCode;
   final RideDetails? rideDetails;
 
   CreateRideResponse({
     required this.rideId,
     required this.status,
     required this.message,
+    this.rideCode,
     this.rideDetails,
   });
 
@@ -67,6 +68,7 @@ class CreateRideResponse {
       rideId: json['ride_id'] as String? ?? json['id'] as String? ?? '',
       status: json['status'] as String? ?? 'pending',
       message: json['message'] as String? ?? 'Ride created successfully',
+      rideCode: json['ride_code']?.toString() ?? json['ride']?['ride_code']?.toString() ?? json['otp']?.toString(),
       rideDetails:
           json['ride'] != null
               ? RideDetails.fromJson(json['ride'] as Map<String, dynamic>)
@@ -118,7 +120,9 @@ class RideDetails {
         address: json['destination']?['address'] as String? ?? '',
       ),
       vehicleType: json['vehicle_type'] as String? ?? '',
-      fareAmount: (json['fare_amount'] as num?)?.toDouble() ?? 0.0,
+      fareAmount: (json['fare_amount'] is String)
+          ? double.tryParse(json['fare_amount'] as String) ?? 0.0
+          : (json['fare_amount'] as num?)?.toDouble() ?? 0.0,
       driverId: json['driver_id'] as String?,
 
       // Handle both nested and flat driver structure
@@ -167,7 +171,9 @@ class DriverDetails {
     return DriverDetails(
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? 'Driver',
-      rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
+      rating: (json['rating'] is String)
+          ? double.tryParse(json['rating'] as String) ?? 5.0
+          : (json['rating'] as num?)?.toDouble() ?? 5.0,
       profileImage:
           json['profile_image'] as String? ?? json['photo_url'] as String?,
       phoneNumber: json['phone_number'] as String?,

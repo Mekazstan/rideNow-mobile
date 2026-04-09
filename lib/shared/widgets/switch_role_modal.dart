@@ -110,7 +110,7 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
             final success = await authProvider.startDriverOnboarding();
             if (success && mounted) {
               Navigator.pop(context);
-              final route = await authProvider.getOnboardingRoute(widget.targetRole);
+              final route = await authProvider.getOnboardingRoute(targetRole: widget.targetRole);
               if (route != null && mounted) {
                 context.pushNamed(route);
               } else if (mounted) {
@@ -134,7 +134,7 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
           ),
           onPressed: _isLoading ? null : () async {
             setState(() => _isLoading = true);
-            final route = await authProvider.getOnboardingRoute(widget.targetRole);
+            final route = await authProvider.getOnboardingRoute(targetRole: widget.targetRole);
             if (mounted) {
               if (route != null) {
                 // Still has onboarding steps to complete
@@ -209,7 +209,7 @@ class _SwitchRoleModalState extends State<SwitchRoleModal> {
             // UI will automatically switch due to ConditionalWidget
           } else if (response != null && response.status == 'ONBOARDING_REQUIRED') {
             // Fetch correct route for this role
-            final route = await authProvider.getOnboardingRoute(widget.targetRole);
+            final route = await authProvider.getOnboardingRoute(targetRole: widget.targetRole);
             setState(() => _isLoading = false);
             if (mounted) {
               Navigator.pop(context);

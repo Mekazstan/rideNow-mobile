@@ -1,13 +1,16 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// API configuration constants
 class ApiConstants {
   ApiConstants._();
 
   // Google Maps API
-  static const String googleMapsApiKey =
-      'AIzaSyD7T_mhOQVLdfPuEVCyWjMv7fRO4DXZ73I';
+  static String get googleMapsApiKey => dotenv.get('GOOGLE_MAPS_API_KEY', fallback: '');
+  static String get googleWebClientId => dotenv.get('GOOGLE_WEB_CLIENT_ID', fallback: '');
+  
   static const String googleMapsBaseUrl =
       'https://maps.googleapis.com/maps/api';
-  static const String baseUrl = 'http://10.254.126.158:3000';
+  static String get baseUrl => dotenv.get('BASE_URL', fallback: 'http://localhost:3000');
   static const String countryCode = 'ng';
   static const int searchRadiusMeters = 50000;
 
@@ -62,6 +65,8 @@ class ApiConstants {
       '/rides/{rideId}/available-drivers';
   static const String getCounterOffersEndpoint =
       '/rides/{rideId}/counter-offers';
+  static String sendCounterOfferEndpoint(String rideId) =>
+      '/rides/$rideId/counter-offer';
   static const String getRideStatusEndpoint = '/rides/{rideId}/status-update';
   static const String getRideCodeEndpoint = '/rides/{rideId}/code';
   static const String acceptCounterOfferEndpoint =

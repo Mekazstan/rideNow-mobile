@@ -5,6 +5,7 @@ import 'package:ridenowappsss/core/storage/local_storage.dart';
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 import 'package:ridenowappsss/modules/ride/data/models/driver_ride_request.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/driver_analytics_models.dart';
+import 'package:ridenowappsss/modules/ride/data/models/driver_vehicle_model.dart';
 
 abstract class DriverRemoteDataSource {
   Future<RideRequestsResponse> getRideRequests(RideRequestsQuery query);
@@ -12,8 +13,9 @@ abstract class DriverRemoteDataSource {
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
   Future<Map<String, dynamic>> getVerificationStatus();
-  Future<void> goOnline(double lat, double lng, String location);
+  Future<void> goOnline(double lat, double lng, String location, String vehicleId);
   Future<void> goOffline();
+  Future<VehiclesResponse> getVehicles();
   Future<Map<String, dynamic>> updateLocation({
     required double lat,
     required double lng,
@@ -25,6 +27,7 @@ abstract class DriverRemoteDataSource {
   Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address);
   Future<void> completeRide(String rideId, double lat, double lng, String address);
   Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address);
+  Future<Map<String, dynamic>> sendCounterOffer(String rideId, double amount);
 }
 
 class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
@@ -254,6 +257,57 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> sendCounterOffer(String rideId, double amount) async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final url = '$_baseUrl${ApiConstants.sendCounterOfferEndpoint(rideId)}';
+      final uri = Uri.parse(url);
+
+      debugPrint('🚀 Sending counter offer: $rideId → $amount');
+
+      final body = {
+        'amount': amount,
+      };
+
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint('📡 Response status: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        final errorData = json.decode(response.body) as Map<String, dynamic>?;
+        final rawMessage = errorData?['message'];
+        final errorMessage = rawMessage is List
+            ? (rawMessage as List<dynamic>).join(', ')
+            : rawMessage as String? ?? errorData?['error'] as String? ?? 'Failed to send counter offer';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('Error in sendCounterOffer: $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        throw Exception('Network error. Please check your internet connection.');
+      }
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> rejectRide(String rideId) async {
     try {
       // Get auth token
@@ -364,31 +418,73 @@ class DriverRemoteDataSourceImpl implements DriverRemoteDataSource {
   }
 
   @override
-  Future<void> goOnline(double lat, double lng, String location) async {
+  Future<void> goOnline(double lat, double lng, String location, String vehicleId) async {
     try {
       final token = await _storageService.getAuthToken();
       if (token == null) throw Exception('Authentication token not found');
 
       final uri = Uri.parse('$_baseUrl${ApiConstants.goOnlineEndpoint}');
+      
+      // Corrected payload to match GoOnlineDto: current_location (nested) and vehicle_id
+      final body = {
+        'current_location': {
+          'lat': lat,
+          'lng': lng,
+          'address': location,
+        },
+        'vehicle_id': vehicleId,
+      };
+
+      debugPrint('🚗 Driver going online: ${json.encode(body)}');
+
       final response = await _client.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'lat': lat,
-          'lng': lng,
-          'location': location,
-        }),
+        body: json.encode(body),
       ).timeout(const Duration(seconds: 15));
+
+      debugPrint('📡 Go online response: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         final errorData = json.decode(response.body) as Map<String, dynamic>?;
-        throw Exception(errorData?['message'] ?? 'Failed to go online');
+        final rawMessage = errorData?['message'];
+        final errorMessage = rawMessage is List
+            ? (rawMessage as List<dynamic>).join(', ')
+            : rawMessage as String? ?? 'Failed to go online';
+        throw Exception(errorMessage);
       }
     } catch (e) {
       debugPrint('Error in goOnline: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<VehiclesResponse> getVehicles() async {
+    try {
+      final token = await _storageService.getAuthToken();
+      if (token == null) throw Exception('Authentication token not found');
+
+      final uri = Uri.parse('$_baseUrl/drivers/vehicles');
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return VehiclesResponse.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to fetch vehicles');
+      }
+    } catch (e) {
+      debugPrint('Error in getVehicles: $e');
       rethrow;
     }
   }

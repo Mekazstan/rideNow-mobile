@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:ridenowappsss/modules/ride/data/data_sources/driver_remote_data_source.dart';
 import 'package:ridenowappsss/modules/ride/data/models/driver_ride_request.dart';
 import 'package:ridenowappsss/modules/wallet/data/models/driver_analytics_models.dart';
+import 'package:ridenowappsss/modules/ride/data/models/driver_vehicle_model.dart';
 
 abstract class DriverRepository {
   Future<RideRequestsResponse> getRideRequests(RideRequestsQuery query);
@@ -9,8 +10,9 @@ abstract class DriverRepository {
   Future<void> rejectRide(String rideId);
   Future<DailyLimitStatus> getDriverStatus();
   Future<Map<String, dynamic>> getVerificationStatus();
-  Future<void> goOnline(double lat, double lng, String location);
+  Future<void> goOnline(double lat, double lng, String location, String vehicleId);
   Future<void> goOffline();
+  Future<VehiclesResponse> getVehicles();
   Future<Map<String, dynamic>> updateLocation({
     required double lat,
     required double lng,
@@ -22,6 +24,7 @@ abstract class DriverRepository {
   Future<void> startRide(String rideId, String rideCode, double lat, double lng, String address);
   Future<void> completeRide(String rideId, double lat, double lng, String address);
   Future<void> cancelActiveRide(String rideId, String reason, String? customReason, double lat, double lng, String address);
+  Future<Map<String, dynamic>> sendCounterOffer(String rideId, double amount);
 }
 
 class DriverRepositoryImpl implements DriverRepository {
@@ -46,6 +49,16 @@ class DriverRepositoryImpl implements DriverRepository {
       return await _remoteDataSource.acceptRide(request);
     } catch (e) {
       debugPrint('❌ Repository: Error accepting ride: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> sendCounterOffer(String rideId, double amount) async {
+    try {
+      return await _remoteDataSource.sendCounterOffer(rideId, amount);
+    } catch (e) {
+      debugPrint('❌ Repository: Error sending counter offer: $e');
       rethrow;
     }
   }
@@ -81,11 +94,21 @@ class DriverRepositoryImpl implements DriverRepository {
   }
 
   @override
-  Future<void> goOnline(double lat, double lng, String location) async {
+  Future<void> goOnline(double lat, double lng, String location, String vehicleId) async {
     try {
-      await _remoteDataSource.goOnline(lat, lng, location);
+      await _remoteDataSource.goOnline(lat, lng, location, vehicleId);
     } catch (e) {
       debugPrint('❌ Repository: Error going online: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<VehiclesResponse> getVehicles() async {
+    try {
+      return await _remoteDataSource.getVehicles();
+    } catch (e) {
+      debugPrint('❌ Repository: Error fetching vehicles: $e');
       rethrow;
     }
   }

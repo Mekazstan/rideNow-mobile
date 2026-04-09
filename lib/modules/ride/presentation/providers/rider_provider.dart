@@ -148,6 +148,10 @@ class RideProvider extends ChangeNotifier {
   Set<Marker> get markers => _markerManager.markers;
   Set<Polyline> get polylines => _polylines;
 
+  // Added flags
+  bool _isShowingAcceptedSuccess = false;
+  bool get isShowingAcceptedSuccess => _isShowingAcceptedSuccess;
+
   void setRideDetailVisible(bool visible) {
     if (_isRideDetailVisible == visible) return;
     _isRideDetailVisible = visible;
@@ -842,8 +846,9 @@ class RideProvider extends ChangeNotifier {
 
       // Store the ride ID for fetching drivers/offers
       _currentRideId = response.rideId;
+      _rideOtp = response.rideCode; // Cache OTP from ride creation response!
 
-      debugPrint('✅ Ride created successfully: ${response.rideId}');
+      debugPrint('✅ Ride created successfully: ${response.rideId} with code: ${_rideOtp}');
 
       _isCreatingRide = false;
       _rideStage = RideStage.searchingDrivers;
@@ -1033,7 +1038,14 @@ class RideProvider extends ChangeNotifier {
       _bookedPlateNumber = offer.plateNumber;
 
       _rideStage = RideStage.driverOnWay;
+      _isShowingAcceptedSuccess = true;
       notifyListeners();
+      
+      Future.delayed(const Duration(seconds: 5), () {
+        _isShowingAcceptedSuccess = false;
+        notifyListeners();
+      });
+
       await fetchRideDetails();
 
       fitCameraToBounds();
@@ -1097,7 +1109,7 @@ class RideProvider extends ChangeNotifier {
     debugPrint('🔌 Setting up socket listeners for ride: $_currentRideId');
     
     // Join ride-specific room
-    socketService.emit('join_ride', {'rideId': _currentRideId});
+    socketService.emit('join_ride_as_rider', {'rideId': _currentRideId});
 
     // Ride Status Updates
     socketService.on('ride_status_update', (data) {
@@ -1132,7 +1144,7 @@ class RideProvider extends ChangeNotifier {
     });
 
     // New Counter Offers
-    socketService.on('new_counter_offer', (data) {
+    socketService.on('counter_offer_received', (data) {
       debugPrint('📡 Socket: New counter offer received');
       fetchCounterOffers();
     });
@@ -1182,6 +1194,7 @@ class RideProvider extends ChangeNotifier {
     _driverStatus = null;
     _rideCode = null;
     _rideOtp = null;
+    _isShowingAcceptedSuccess = false;
     _polylines.clear();
     _markerManager.clearMarkers();
     _chatMessages.clear();
@@ -1209,8 +1222,7 @@ class RideProvider extends ChangeNotifier {
   Future<void> acceptOffer(CounterOffer offer) async {
     if (_currentRideId == null) return;
     try {
-      await _placesRepository.acceptCounterOffer(_currentRideId!, offer.offerId);
-      fetchRideDetails();
+      await acceptCounterOffer(offer.offerId);
     } catch (e) {
       debugPrint('❌ Error accepting offer: $e');
       rethrow;

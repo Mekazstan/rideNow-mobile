@@ -47,6 +47,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   webview_flutter_wkwebview: ^3.15.0
   webview_flutter_android: ^4.10.1
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +71,7 @@ flutter:
   assets:
     - assets/
     - assets/smile_config.json
+    - .env
 
   # example:
   # fonts:

@@ -305,8 +305,14 @@ class _DriverOffersContentState extends State<_DriverOffersContent> {
   }
 
   Widget _buildContent() {
-    final acceptedDrivers = widget.rideViewModel.availableDrivers;
     final pendingOffers = widget.rideViewModel.counterOffers;
+    final offerDriverIds = pendingOffers.map((o) => o.driverId).toSet();
+    
+    // Filter out drivers who have already sent a counter offer
+    final acceptedDrivers = widget.rideViewModel.availableDrivers
+        .where((driver) => !offerDriverIds.contains(driver.driverId))
+        .toList();
+        
     final hasNoData = acceptedDrivers.isEmpty && pendingOffers.isEmpty;
 
     if (hasNoData) {
@@ -531,10 +537,10 @@ class _DriverOffersContentState extends State<_DriverOffersContent> {
           SizedBox(height: 4.h),
           Text(
             'Swipe right to accept and left to decline',
-            style: widget.appFonts.textSmRegular.copyWith(
-              color: widget.appColors.textSecondary,
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w400,
+            style: widget.appFonts.textBaseMedium.copyWith(
+              color: widget.appColors.textPrimary,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

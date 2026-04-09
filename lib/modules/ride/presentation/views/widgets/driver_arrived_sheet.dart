@@ -194,36 +194,45 @@ class DriverArrivedSheet extends StatelessWidget {
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
   ) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 20.h),
-      decoration: BoxDecoration(
-        color: appColors.gray100,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: appColors.gray200),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'RIDE OTP',
-            style: appFonts.textSmRegular.copyWith(
-              color: appColors.textSecondary,
-              letterSpacing: 2,
-              fontWeight: FontWeight.w700,
-            ),
+    // Pad the code to ensure it's always at least 4 characters for display
+    final String safeCode = rideCode.padRight(4, '0').substring(0, 4);
+
+    return Column(
+      children: [
+        Text(
+          "Here's your ride code:",
+          style: appFonts.textSmRegular.copyWith(
+            color: appColors.textSecondary,
+            fontSize: 14.sp,
           ),
-          SizedBox(height: 12.h),
-          Text(
-            rideCode,
-            style: TextStyle(
-              fontSize: 36.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 8,
-              color: appColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
+        ),
+        SizedBox(height: 16.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(4, (index) {
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 6.w),
+              width: 50.w,
+              height: 56.h,
+              decoration: BoxDecoration(
+                color: appColors.gray100,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: appColors.gray200, width: 1.5),
+              ),
+              child: Center(
+                child: Text(
+                  safeCode[index],
+                  style: appFonts.textBaseMedium.copyWith(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.w700,
+                    color: appColors.textPrimary,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 

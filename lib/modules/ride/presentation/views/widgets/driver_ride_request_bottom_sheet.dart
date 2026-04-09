@@ -12,6 +12,8 @@ import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_rid
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_screenshimmer.dart';
 import 'package:ridenowappsss/modules/ride/presentation/views/widgets/driver_counter_offer_sheet.dart';
 import 'package:ridenowappsss/core/services/toast_service.dart';
+import 'package:ridenowappsss/core/navigation/route_constant.dart';
+import 'package:go_router/go_router.dart';
 
 class RideRequestBottomSheet extends StatefulWidget {
   final String currentLocationName;
@@ -76,8 +78,10 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
               children: [
                 _buildDragHandle(appColors),
                 SizedBox(height: 24.h),
-                if (widget.selectedRide == null)
-                  ..._buildRideListView(appColors, appFonts, viewModel)
+                if (viewModel.hasPendingCounterOffer)
+                  ..._buildAwaitingView(appColors, appFonts, viewModel)
+                else if (widget.selectedRide == null)
+                  ..._buildRideRequestsView(appColors, appFonts, viewModel)
                 else
                   ..._buildRideDetailsView(appColors, appFonts, viewModel),
               ],
@@ -102,11 +106,56 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
     );
   }
 
-  List<Widget> _buildRideListView(
+  List<Widget> _buildAwaitingView(
     AppColorExtension appColors,
     AppFontThemeExtension appFonts,
     DriverProvider viewModel,
   ) {
+    return [
+      Center(
+        child: Column(
+          children: [
+            SizedBox(height: 20.h),
+            const CircularProgressIndicator(),
+            SizedBox(height: 20.h),
+            Text(
+              'Awaiting Rider Acceptance',
+              style: appFonts.textMdBold.copyWith(color: appColors.textPrimary),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'You offered ₦${viewModel.pendingCounterOfferAmount?.toStringAsFixed(2)}',
+              style: appFonts.textSmMedium.copyWith(color: appColors.textSecondary),
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: () => viewModel.clearPendingCounterOffer(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade50,
+                foregroundColor: Colors.red,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: const Text('Cancel Offer'),
+            ),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildRideRequestsView(
+    AppColorExtension appColors,
+    AppFontThemeExtension appFonts,
+    DriverProvider viewModel,
+  ) {
+    if (viewModel.isVerificationStatusLoaded && !viewModel.isApproved) {
+      return [_buildUnapprovedState(appColors, appFonts, viewModel)];
+    }
+
     return [
       _buildHeader(appColors, appFonts, viewModel),
       SizedBox(height: 10.h),
@@ -276,23 +325,124 @@ class _RideRequestBottomSheetState extends State<RideRequestBottomSheet> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DriverCounterOfferSheet(
+      builder: (sheetContext) => DriverCounterOfferSheet(
         currentFare: widget.selectedRide.fare.toDouble(),
         onOfferSent: (newFare) async {
-          Navigator.pop(context);
+          Navigator.pop(sheetContext); // Close the bottom sheet first
           
-          final success = await viewModel.acceptRide(
-            widget.selectedRide.id,
-            proposedFare: newFare,
+          showDialog(
+            context: context, // Use the outer, still-mounted context
+            barrierDismissible: false,
+            builder: (dialogContext) => const DriverLoadingDialogShimmer(),
           );
           
-          if (success && mounted) {
+          final success = await viewModel.sendCounterOffer(
+            widget.selectedRide.id,
+            newFare,
+          );
+          
+          if (!mounted) return;
+          Navigator.of(context, rootNavigator: true).pop(); // dismiss loading dialog explicitly
+          
+          if (success) {
             ToastService.showSuccess('Counter offer sent!');
-            widget.onBackToList();
-          } else if (!success && mounted) {
+            // Wait for dialog dismiss animation to fully complete before going to list view logic
+            await Future.delayed(const Duration(milliseconds: 300));
+            if (mounted) {
+              widget.onBackToList();
+            }
+          } else {
             ToastService.showError(viewModel.errorMessage ?? 'Failed to send counter offer');
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildUnapprovedState(
+    AppColorExtension appColors,
+    AppFontThemeExtension appFonts,
+    DriverProvider viewModel,
+  ) {
+    return Expanded(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: appColors.orange50.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.pending_actions_rounded,
+                  size: 64.sp,
+                  color: appColors.orange500,
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                'Verification Pending',
+                textAlign: TextAlign.center,
+                style: appFonts.textSmMedium.copyWith(
+                  color: appColors.textPrimary,
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Text(
+                  'Your driver profile is currently under review by our admin team. This usually takes 24-48 hours.',
+                  textAlign: TextAlign.center,
+                  style: appFonts.textSmMedium.copyWith(
+                    color: appColors.textSecondary,
+                    fontSize: 14.sp,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              SizedBox(height: 32.h),
+              ElevatedButton(
+                onPressed: () {
+                  context.pushNamed(RouteConstants.driverVerificationPortal);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: appColors.blue600,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 14.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.remove_red_eye_outlined, size: 20.sp),
+                    SizedBox(width: 8.w),
+                    const Text('View Application Status'),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16.h),
+              TextButton(
+                onPressed: () => viewModel.refresh(),
+                child: Text(
+                  'Refresh Status',
+                  style: appFonts.textSmMedium.copyWith(
+                    color: appColors.blue600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

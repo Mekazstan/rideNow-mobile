@@ -4,7 +4,7 @@ import 'package:ridenowappsss/modules/authentication/data/models/auth_models.dar
 import 'package:ridenowappsss/core/utils/constants/api_constant.dart';
 
 class DioClient {
-  static const String baseUrl = ApiConstants.baseUrl;
+  static String get baseUrl => ApiConstants.baseUrl;
 
   late final Dio _dio;
 

@@ -40,7 +40,7 @@ class _DriverDocumentCollectionScreenState
     'Registration': null,
     'Insurance': null,
     'Roadworthiness': null,
-    'CarImage': null,
+    // 'CarImage': null,
   };
 
   final Map<String, String> _documentLabels = {
@@ -48,7 +48,7 @@ class _DriverDocumentCollectionScreenState
     'Registration': 'Vehicle Registration (Yellow Paper)',
     'Insurance': 'Insurance Certificate',
     'Roadworthiness': 'Roadworthiness Certificate',
-    'CarImage': 'Front View of Car',
+    // 'CarImage': 'Front View of Car',
   };
 
   Future<void> _pickImage(String docKey) async {
@@ -119,9 +119,9 @@ class _DriverDocumentCollectionScreenState
             case 'Roadworthiness':
               docType = 'roadworthiness';
               break;
-            case 'CarImage':
-              docType = 'car_image';
-              break;
+            // case 'CarImage':
+            //   docType = 'car_image';
+            //   break;
             default:
               docType = 'other';
           }

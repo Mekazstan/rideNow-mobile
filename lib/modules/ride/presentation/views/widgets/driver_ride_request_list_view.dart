@@ -31,11 +31,7 @@ class RideRequestsListView extends StatelessWidget {
       return const DriverRideRequestsListShimmer();
     }
 
-    // Check if the driver is approved - Show Pending Admin Approval if not.
-    if (viewModel.isVerificationStatusLoaded && !viewModel.isApproved) {
-      return _buildErrorState(context, forceUnverified: true);
-    }
-
+    // Check if there's a backend error
     if (viewModel.hasError) {
       return _buildErrorState(context);
     }

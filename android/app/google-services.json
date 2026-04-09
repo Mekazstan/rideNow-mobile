@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "190764441886",
+    "project_id": "ride-now-b6d93",
+    "storage_bucket": "ride-now-b6d93.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:190764441886:android:c652f76c2cef3bd8d6290f",
+        "android_client_info": {
+          "package_name": "com.example.ridenowappsss"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "190764441886-i8km61q0ck1fr7rg1rhk0dk0q1ta8nao.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ridenowappsss",
+            "certificate_hash": "57af6fbc1c29195cf1327913757b5eb121b856ff"
+          }
+        },
+        {
+          "client_id": "190764441886-qtcppk79turflpl1pdvmob0h4vnkcfk9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_k6Gre_3nkSli4iPZdcEZzVBf9Fh0Gwc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "190764441886-8353tv3728oculofnpjehcr6c48bt3fq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "190764441886-53ci9m5377n8rru203n1j6t0btusmrob.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ridenowappsss"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
